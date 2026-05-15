@@ -1,0 +1,20 @@
+{
+  "lastChangelogVersion": "0.74.0",
+  "hideThinkingBlock": true,
+  "collapseChangelog": true,
+  "quietStartup": true,
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
+  "showHardwareCursor": true,
+  "autocompleteMaxVisible": 7,
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "steeringMode": "all",
+  "followUpMode": "all",
+  "transport": "auto",
+  "doubleEscapeAction": "tree",
+  "warnings": {
+    "anthropicExtraUsage": false
+  }
+}
