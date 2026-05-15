@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added OpenRouter image-generation support by registering Flux and Gemini image-preview models, accepting OpenRouter image-output models from discovery, and parsing generated image payloads from OpenAI-compatible completions responses ([#3887](https://github.com/earendil-works/pi-mono/pull/3887) by [@cristinaponcela](https://github.com/cristinaponcela)).
+- Added Google streaming to surface inline image output parts as assistant image content blocks and `image_start`/`image_end` events ([#3887](https://github.com/earendil-works/pi-mono/pull/3887) by [@cristinaponcela](https://github.com/cristinaponcela)).
 - Added Together AI as a built-in OpenAI-compatible provider with generated model metadata and `TOGETHER_API_KEY` authentication ([#3624](https://github.com/earendil-works/pi-mono/pull/3624) by [@Nutlope](https://github.com/Nutlope)).
 
 ### Fixed
@@ -14,6 +16,8 @@
 - Fixed OpenAI Responses requests for models that support disabling reasoning to send `reasoning.effort: "none"` when thinking is off.
 - Fixed Inception Mercury 2 tool calling on OpenRouter by marking `off` as unsupported in `thinkingLevelMap`, so the openai-completions provider omits the reasoning param instead of defaulting to `{reasoning:{effort:"none"}}` (which puts Mercury 2 in instant mode, disabling tool calls).
 - Fixed OpenAI Codex SSE retries to honor `retry-after-ms` and `retry-after` headers before falling back to exponential backoff.
+- Fixed WebSocket transport in bun to respect HTTP proxy environment variables ([#4346](https://github.com/earendil-works/pi-mono/issues/4346)).
+- Fixed Fireworks provider caching by sending session affinity headers for higher cache hit rates and omitting unsupported `cache_control` on tool definitions ([#4358](https://github.com/earendil-works/pi-mono/pull/4358) by [@yanirz](https://github.com/yanirz)).
 
 ## [0.74.0] - 2026-05-07
 

@@ -2,9 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added list item wrapping with indent for improved readability ([#4327](https://github.com/earendil-works/pi-mono/pull/4327) by [@Perlence](https://github.com/Perlence)).
+
 ### Fixed
 
 - Fixed inline image rendering to cap portrait images by height instead of always scaling them to the configured maximum width.
+- Fixed image placement when viewport height is less than the image height ([#4461](https://github.com/earendil-works/pi-mono/issues/4461)).
+- Fixed markdown rendering to handle large files more robustly ([#4463](https://github.com/earendil-works/pi-mono/issues/4463)).
+- Fixed checkbox rendering in task list items ([#4379](https://github.com/earendil-works/pi-mono/pull/4379) by [@Perlence](https://github.com/Perlence)).
 
 ## [0.74.0] - 2026-05-07
 

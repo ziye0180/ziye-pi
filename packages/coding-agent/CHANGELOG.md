@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added image generation support via OpenRouter (Flux, Gemini image-preview models) and Google streaming with inline image output parts ([#3887](https://github.com/earendil-works/pi-mono/pull/3887) by [@cristinaponcela](https://github.com/cristinaponcela)).
 - Added Together AI to built-in provider setup, `/login` API-key auth, and default model resolution ([#3624](https://github.com/earendil-works/pi-mono/pull/3624) by [@Nutlope](https://github.com/Nutlope)).
 - Added Windows ARM64 standalone binary release artifacts ([#4458](https://github.com/earendil-works/pi/pull/4458) by [@brianmichel](https://github.com/brianmichel)).
 
@@ -16,6 +17,8 @@
 - Fixed theme sharing across package scopes so extensions do not crash with `Theme not initialized` ([#4333](https://github.com/earendil-works/pi/issues/4333)).
 - Fixed keybinding hints to show Option instead of Alt on macOS ([#4289](https://github.com/earendil-works/pi/issues/4289)).
 - Fixed the interactive update notification to render the changelog as an OSC 8 hyperlink when the terminal supports hyperlinks ([#4280](https://github.com/earendil-works/pi/issues/4280)).
+- Fixed terminal restoration on uncaught exceptions to prevent leaving the terminal in a broken state ([#4426](https://github.com/earendil-works/pi-mono/pull/4426) by [@ofa1](https://github.com/ofa1)).
+- Fixed `.agents` provenance metadata preservation during skill and extension discovery ([#4299](https://github.com/earendil-works/pi-mono/pull/4299) by [@aliou](https://github.com/aliou)).
 
 ## [0.74.0] - 2026-05-07
 
