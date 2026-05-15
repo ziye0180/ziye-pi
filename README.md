@@ -7,72 +7,72 @@
   <a href="https://discord.com/invite/3cU7Bz4UPx"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
 </p>
 <p align="center">
-  <a href="https://pi.dev">pi.dev</a> domain graciously donated by
+  <a href="https://pi.dev">pi.dev</a> 域名由
   <br /><br />
-  <a href="https://exe.dev"><img src="packages/coding-agent/docs/images/exy.png" alt="Exy mascot" width="48" /><br />exe.dev</a>
+  <a href="https://exe.dev"><img src="packages/coding-agent/docs/images/exy.png" alt="Exy mascot" width="48" /><br />exe.dev</a> 友情捐赠
 </p>
 
-> New issues and PRs from new contributors are auto-closed by default. Maintainers review auto-closed issues daily. See [CONTRIBUTING.md](CONTRIBUTING.md).
+> 新贡献者的 Issue 和 PR 默认自动关闭。维护者每日审查自动关闭的 Issue。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 
-# Pi Agent Harness Mono Repo
+# Pi Agent Harness 单体仓库
 
-This is the home of the pi agent harness project including our self extensible coding agent.
+这是 pi agent harness 项目的大本营，包含我们的自扩展编程 agent。
 
-* **[@earendil-works/pi-coding-agent](packages/coding-agent)**: Interactive coding agent CLI
-* **[@earendil-works/pi-agent-core](packages/agent)**: Agent runtime with tool calling and state management
-* **[@earendil-works/pi-ai](packages/ai)**: Unified multi-provider LLM API (OpenAI, Anthropic, Google, …)
+* **[@earendil-works/pi-coding-agent](packages/coding-agent)**：交互式编程 agent CLI
+* **[@earendil-works/pi-agent-core](packages/agent)**：Agent 运行时，含工具调用和状态管理
+* **[@earendil-works/pi-ai](packages/ai)**：统一多厂商 LLM API（OpenAI、Anthropic、Google 等）
 
-To learn more about pi:
+了解更多：
 
-* [Visit pi.dev](https://pi.dev), the project website with demos
-* [Read the documentation](https://pi.dev/docs/latest), but you can also ask the agent to explain itself
+* [访问 pi.dev](https://pi.dev)，项目官网含演示
+* [阅读文档](https://pi.dev/docs/latest)，也可以直接让 agent 自己解释
 
-## Share your OSS coding agent sessions
+## 分享你的 OSS 编程 agent 会话
 
-If you use pi or other coding agents for open source work, please share your sessions.
+如果你用 pi 或其他编程 agent 做开源项目，欢迎分享你的会话。
 
-Public OSS session data helps improve coding agents with real-world tasks, tool use, failures, and fixes instead of toy benchmarks.
+公开的 OSS 会话数据通过真实任务、工具使用、失败和修复来帮助改进编程 agent，而非靠玩具基准测试。
 
-For the full explanation, see [this post on X](https://x.com/badlogicgames/status/2037811643774652911).
+完整说明见 [X 上的这篇帖子](https://x.com/badlogicgames/status/2037811643774652911)。
 
-To publish sessions, use [`badlogic/pi-share-hf`](https://github.com/badlogic/pi-share-hf). Read its README.md for setup instructions. All you need is a Hugging Face account, the Hugging Face CLI, and `pi-share-hf`.
+发布会话用 [`badlogic/pi-share-hf`](https://github.com/badlogic/pi-share-hf)。读它的 README.md 了解配置步骤。你只需要一个 Hugging Face 账号、Hugging Face CLI 和 `pi-share-hf`。
 
-You can also watch [this video](https://x.com/badlogicgames/status/2041151967695634619), where I show how I publish my `pi-mono` sessions.
+也可以看[这个视频](https://x.com/badlogicgames/status/2041151967695634619)，里面演示了如何发布 `pi-mono` 会话。
 
-I regularly publish my own `pi-mono` work sessions here:
+我定期在此发布自己的 `pi-mono` 工作会话：
 
 - [badlogicgames/pi-mono on Hugging Face](https://huggingface.co/datasets/badlogicgames/pi-mono)
 
-## All Packages
+## 全部包
 
-| Package | Description |
+| 包 | 描述 |
 |---------|-------------|
-| **[@earendil-works/pi-ai](packages/ai)** | Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.) |
-| **[@earendil-works/pi-agent-core](packages/agent)** | Agent runtime with tool calling and state management |
-| **[@earendil-works/pi-coding-agent](packages/coding-agent)** | Interactive coding agent CLI |
-| **[@earendil-works/pi-tui](packages/tui)** | Terminal UI library with differential rendering |
-| **[@earendil-works/pi-web-ui](packages/web-ui)** | Web components for AI chat interfaces |
+| **[@earendil-works/pi-ai](packages/ai)** | 统一多厂商 LLM API（OpenAI、Anthropic、Google 等） |
+| **[@earendil-works/pi-agent-core](packages/agent)** | Agent 运行时，含工具调用和状态管理 |
+| **[@earendil-works/pi-coding-agent](packages/coding-agent)** | 交互式编程 agent CLI |
+| **[@earendil-works/pi-tui](packages/tui)** | 终端 UI 库，含差分渲染 |
+| **[@earendil-works/pi-web-ui](packages/web-ui)** | AI 聊天界面的 Web 组件 |
 
-For Slack/chat automation and workflows see [earendil-works/pi-chat](https://github.com/earendil-works/pi-chat).
+Slack/聊天自动化和工作流见 [earendil-works/pi-chat](https://github.com/earendil-works/pi-chat)。
 
-## Contributing
+## 贡献
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [AGENTS.md](AGENTS.md) for project-specific rules (for both humans and agents).
+贡献指南见 [CONTRIBUTING.md](CONTRIBUTING.md)，项目规则（面向人类和 agent）见 [AGENTS.md](AGENTS.md)。
 
-## Development
+## 开发
 
 ```bash
-npm install          # Install all dependencies
-npm run build        # Build all packages
-npm run check        # Lint, format, and type check
-./test.sh            # Run tests (skips LLM-dependent tests without API keys)
-./pi-test.sh         # Run pi from sources (can be run from any directory)
+npm install          # 安装所有依赖
+npm run build        # 构建所有包
+npm run check        # Lint、格式化、类型检查
+./test.sh            # 运行测试（无 API key 时跳过依赖 LLM 的测试）
+./pi-test.sh         # 从源码运行 pi（可在任意目录执行）
 ```
 
-> **Note:** `npm run check` requires `npm run build` to be run first. The web-ui package uses `tsc` which needs compiled `.d.ts` files from dependencies.
+> **注意：** `npm run check` 需要先执行 `npm run build`。web-ui 包使用 `tsc`，依赖来自其他包的编译产物 `.d.ts` 文件。
 
-## License
+## 许可证
 
 MIT

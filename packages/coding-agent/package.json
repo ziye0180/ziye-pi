@@ -4,10 +4,11 @@
 	"description": "Coding agent CLI with read, bash, edit, write tools and session management",
 	"type": "module",
 	"piConfig": {
-		"configDir": ".pi"
+		"name": "ziye",
+		"configDir": ".ziye"
 	},
 	"bin": {
-		"pi": "dist/cli.js"
+		"ziye": "dist/cli.js"
 	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
