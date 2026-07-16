@@ -11,8 +11,20 @@ import {
 import { createPiHttpClient, usePiRuntime } from "@assistant-ui/react-pi";
 import { useMemo, type ReactNode } from "react";
 
+/** URL <-> 当前会话同步:?t=<threadId>,刷新/直链回到同一会话。 */
+const readThreadIdFromUrl = (): string | undefined =>
+  new URLSearchParams(window.location.search).get("t") ?? undefined;
+
+const writeThreadIdToUrl = (id: string | undefined): void => {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("t", id);
+  else url.searchParams.delete("t");
+  window.history.replaceState(null, "", url);
+};
+
 export function PiRuntimeProvider({ children }: { children: ReactNode }) {
   const client = useMemo(() => createPiHttpClient(), []);
+  const initialThreadId = useMemo(readThreadIdFromUrl, []);
   // 附件:图片(data-URL 直达 pi 的 image content)+ 文本文件(并入 text)。
   // pi 内容模型只收 text/image,其余类型 adapter add 时会抛错并提示。
   const adapters = useMemo(
@@ -27,6 +39,8 @@ export function PiRuntimeProvider({ children }: { children: ReactNode }) {
   const runtime = usePiRuntime({
     client,
     adapters,
+    ...(initialThreadId ? { initialThreadId } : {}),
+    onThreadIdChange: writeThreadIdToUrl,
     // fail fast:runtime 内部错误(初始加载/enqueue/resume 失败)不许无声,
     // 冒泡到 console;用户可见反馈由 LastErrorBanner 渲染 extras.lastError
     onError: (error) => {

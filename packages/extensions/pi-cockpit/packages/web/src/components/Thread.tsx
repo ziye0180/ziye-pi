@@ -81,8 +81,41 @@ const Welcome: FC = () => (
     <p className="animate-rise-in mt-2 text-[15px] text-text-2 [animation-delay:75ms]">
       pi cockpit — 你的本地 agent 驾驶舱
     </p>
+    <div className="animate-rise-in mt-6 grid w-full max-w-md gap-2 [animation-delay:150ms]">
+      <SuggestionButtons />
+    </div>
   </div>
 );
+
+/** 空态起手建议。ThreadPrimitive.Suggestions 是 follow-up 语义、react-pi 0.0.6
+ * 也不透传 suggestions,故空态建议自渲染 + 经 composer 发送。 */
+const STARTER_PROMPTS = [
+  "解释一下当前项目的结构",
+  "这个仓库最近改了什么?",
+  "帮我跑一下测试并总结结果",
+];
+
+const SuggestionButtons: FC = () => {
+  const aui = useAui();
+  return (
+    <>
+      {STARTER_PROMPTS.map((prompt) => (
+        <button
+          key={prompt}
+          type="button"
+          onClick={() => {
+            const composer = aui.composer();
+            composer.setText(prompt);
+            composer.send();
+          }}
+          className="rounded-xl border border-border bg-surface px-4 py-2.5 text-start text-[14px] text-text-2 transition-colors duration-200 hover:bg-surface-2 hover:text-text"
+        >
+          {prompt}
+        </button>
+      ))}
+    </>
+  );
+};
 
 const ThreadMessage: FC = () => {
   const role = useAuiState((s) => s.message.role);
