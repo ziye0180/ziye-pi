@@ -13,9 +13,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      // 整个 /api 走 bridge:/api/pi(react-pi 契约,含 SSE)+ /api/cockpit(自有端点)
-      // http-proxy 对流式响应原生支持
-      "/api": {
+      // /api/pi 走 bridge(react-pi 契约,含 SSE);http-proxy 对流式响应原生支持
+      "/api/pi": {
         target: `http://127.0.0.1:${bridgePort}`,
         changeOrigin: false,
       },

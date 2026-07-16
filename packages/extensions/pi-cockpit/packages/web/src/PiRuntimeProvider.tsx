@@ -8,24 +8,9 @@ import {
   SimpleImageAttachmentAdapter,
   SimpleTextAttachmentAdapter,
   WebSpeechDictationAdapter,
-  WebSpeechSynthesisAdapter,
-  type FeedbackAdapter,
 } from "@assistant-ui/react";
 import { createPiHttpClient, usePiRuntime } from "@assistant-ui/react-pi";
 import { useMemo, type ReactNode } from "react";
-
-/** 反馈落盘到 bridge(/api/cockpit,与 pi 契约隔离);失败冒泡 console。 */
-const feedbackAdapter: FeedbackAdapter = {
-  submit: ({ message, type }) => {
-    void fetch("/api/cockpit/feedback", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messageId: message.id, type }),
-    }).catch((error: unknown) =>
-      console.error("[pi-cockpit] 提交反馈失败", error),
-    );
-  },
-};
 
 /** URL <-> 当前会话同步:?t=<threadId>,刷新/直链回到同一会话。 */
 const readThreadIdFromUrl = (): string | undefined =>
@@ -49,10 +34,8 @@ export function PiRuntimeProvider({ children }: { children: ReactNode }) {
         new SimpleImageAttachmentAdapter(),
         new SimpleTextAttachmentAdapter(),
       ]),
-      // 浏览器本地 WebSpeech,不经 pi;朗读回复 + 语音听写输入
-      speech: new WebSpeechSynthesisAdapter(),
+      // 浏览器本地 WebSpeech,不经 pi;语音听写输入
       dictation: new WebSpeechDictationAdapter(),
-      feedback: feedbackAdapter,
     }),
     [],
   );

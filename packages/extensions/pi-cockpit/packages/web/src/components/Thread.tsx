@@ -28,10 +28,7 @@ import {
   MicIcon,
   MoreHorizontalIcon,
   SquareIcon,
-  ThumbsDownIcon,
-  ThumbsUpIcon,
   Trash2Icon,
-  Volume2Icon,
 } from "lucide-react";
 import { useState, type FC } from "react";
 import {
@@ -219,33 +216,6 @@ const AssistantActionBar: FC = () => (
         </AuiIf>
       </button>
     </ActionBarPrimitive.Copy>
-    <ActionBarPrimitive.Speak asChild>
-      <button
-        type="button"
-        aria-label="朗读"
-        className="rounded-md p-1 transition-colors duration-200 hover:text-text"
-      >
-        <Volume2Icon className="size-3.5" />
-      </button>
-    </ActionBarPrimitive.Speak>
-    <ActionBarPrimitive.FeedbackPositive asChild>
-      <button
-        type="button"
-        aria-label="有帮助"
-        className="rounded-md p-1 transition-colors duration-200 hover:text-text data-[active]:text-text"
-      >
-        <ThumbsUpIcon className="size-3.5" />
-      </button>
-    </ActionBarPrimitive.FeedbackPositive>
-    <ActionBarPrimitive.FeedbackNegative asChild>
-      <button
-        type="button"
-        aria-label="没帮助"
-        className="rounded-md p-1 transition-colors duration-200 hover:text-text data-[active]:text-text"
-      >
-        <ThumbsDownIcon className="size-3.5" />
-      </button>
-    </ActionBarPrimitive.FeedbackNegative>
     <ActionBarMorePrimitive.Root>
       <ActionBarMorePrimitive.Trigger asChild>
         <button
