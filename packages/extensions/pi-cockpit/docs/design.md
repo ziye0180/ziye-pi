@@ -70,6 +70,16 @@
 | readiness 横幅 | composer 上方:--surface 底细卡,--text-2 文本,含 message 原文 |
 | queue 卡 | composer 上沿连体卡(--surface-2/50%),条目 13px,steer 条目带细边框 pill 标记 |
 
+## 模型选择器(M2)
+
+- 位置:composer 底部左侧,小号 ghost 按钮(与右侧发送键同一行,justify-between)
+- 按钮显示:当前模型短名 + thinking 档,如 `deepseek-v4-pro · high`,13px --text-2,hover --text
+- 点击向上弹出面板:--surface 底、1px --border、radius 12px、轻阴影;宽约 240px,底部对齐按钮
+- 模型区:条目纵向,当前项左侧 √(--text)其余留白,hover --surface-2,13px
+- thinking 区:面板下部,仅当前模型 supportsThinking 时显示;档位来自该模型 availableThinkingLevels;横向 pill,当前档 --surface-2 底 + --text,其余 --text-3
+- 运行中(status==="running")禁止切换:按钮与条目 disabled,--text-3
+- 点击面板外或选中后关闭
+
 ## 动效(P012 铁律)
 
 - 全部 transition:200-300ms cubic-bezier(0.22, 1, 0.36, 1);禁 linear;禁裸条件渲染闪切

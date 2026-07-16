@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import type { FC } from "react";
 import { MarkdownText } from "./MarkdownText";
+import { ModelSelector } from "./ModelSelector";
 import { ReasoningGroup, ReasoningPart } from "./Reasoning";
 import { ToolCard } from "./ToolCard";
 
@@ -241,31 +242,34 @@ const Composer: FC = () => {
           aria-label="消息输入"
           className="max-h-40 min-h-9 w-full resize-none bg-transparent px-1.5 py-1 text-[15px] outline-none placeholder:text-text-3"
         />
-        <div className="flex items-center justify-end">
-          {/* pi 运行中仍可排队发送(followUp/steer),输入空时才显示停止 */}
-          <AuiIf condition={(s) => !s.thread.isRunning || !s.composer.isEmpty}>
-            <ComposerPrimitive.Send asChild>
-              <button
-                type="button"
-                aria-label="发送"
-                disabled={notReady}
-                className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg transition-opacity duration-200 disabled:bg-surface-2 disabled:text-text-3"
-              >
-                <ArrowUpIcon className="size-4" />
-              </button>
-            </ComposerPrimitive.Send>
-          </AuiIf>
-          <AuiIf condition={(s) => s.thread.isRunning && s.composer.isEmpty}>
-            <ComposerPrimitive.Cancel asChild>
-              <button
-                type="button"
-                aria-label="停止生成"
-                className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg"
-              >
-                <SquareIcon className="size-3 fill-current" />
-              </button>
-            </ComposerPrimitive.Cancel>
-          </AuiIf>
+        <div className="flex items-center justify-between gap-2">
+          <ModelSelector />
+          <div className="flex items-center">
+            {/* pi 运行中仍可排队发送(followUp/steer),输入空时才显示停止 */}
+            <AuiIf condition={(s) => !s.thread.isRunning || !s.composer.isEmpty}>
+              <ComposerPrimitive.Send asChild>
+                <button
+                  type="button"
+                  aria-label="发送"
+                  disabled={notReady}
+                  className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg transition-opacity duration-200 disabled:bg-surface-2 disabled:text-text-3"
+                >
+                  <ArrowUpIcon className="size-4" />
+                </button>
+              </ComposerPrimitive.Send>
+            </AuiIf>
+            <AuiIf condition={(s) => s.thread.isRunning && s.composer.isEmpty}>
+              <ComposerPrimitive.Cancel asChild>
+                <button
+                  type="button"
+                  aria-label="停止生成"
+                  className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg"
+                >
+                  <SquareIcon className="size-3 fill-current" />
+                </button>
+              </ComposerPrimitive.Cancel>
+            </AuiIf>
+          </div>
         </div>
       </div>
     </ComposerPrimitive.Root>
