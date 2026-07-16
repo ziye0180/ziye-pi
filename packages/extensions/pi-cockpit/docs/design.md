@@ -80,6 +80,18 @@
 - 运行中(status==="running")禁止切换:按钮与条目 disabled,--text-3
 - 点击面板外或选中后关闭
 
+## 仪表盘(M3 W3)
+
+- context 用量:composer 右下发送键左侧,细环或"N%"文字(13px --text-3);>80% 变 --text-2 加粗提示(不用 --danger,禁装饰);hover tooltip 显 tokens/contextWindow
+- compaction/retry 横幅:composer 上方(与 readiness 同区)--surface 卡,--text-2 文字:压缩中显"正在压缩上下文…",重试显"自动重试 #N"
+- 每 turn 成本:assistant 消息底部 footer 行,12px --text-3,格式"in/out tokens · $cost";hover 展开 cache/明细(次要,可只显总量)
+- pi 特殊消息卡(data part):
+  - pi-bash-execution:终端样式卡(--bg 黑底、等宽、命令加 $ 前缀、输出、非零 exitCode 显 --danger)
+  - pi-compaction-summary:细卡"上下文已压缩"(--text-3)+ 折叠 summary
+  - pi-branch-summary:细卡"分支摘要"+ 折叠
+  - pi-custom-message / pi-unsupported-message:通用折叠卡(name + JSON,--text-3)
+- 工具耗时:工具卡状态点旁"N.Ns"(完成后,12px --text-3)
+
 ## 富文本渲染(M3 W2)
 
 - 代码块:CodeHeader(--surface-2 底、radius 上圆角、px3 py1.5)= 语言名(12px 等宽 --text-3)+ 右侧复制按钮(hover --text,复制后 1.5s 显 ✓);代码体 shiki 暗色高亮,底色对齐 --surface,13px 等宽,横向滚动

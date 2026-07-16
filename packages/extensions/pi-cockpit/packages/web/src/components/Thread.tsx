@@ -24,11 +24,14 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useState, type FC } from "react";
+import { ActivityBanner, ContextUsage } from "./Dashboard";
 import { HostUiRequests } from "./HostUiRequests";
 import { MarkdownText } from "./MarkdownText";
 import { ModelSelector } from "./ModelSelector";
+import { PiDataPart } from "./PiDataPart";
 import { ReasoningGroup, ReasoningPart } from "./Reasoning";
 import { ToolCard } from "./ToolCard";
+import { TurnCost } from "./TurnCost";
 
 export const Thread: FC = () => {
   return (
@@ -47,6 +50,7 @@ export const Thread: FC = () => {
 
           <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto flex flex-col gap-3 bg-bg pb-5">
             <ScrollToBottom />
+            <ActivityBanner />
             <ReadinessBanner />
             <LastErrorBanner />
             <HostUiRequests />
@@ -116,6 +120,8 @@ const AssistantMessage: FC = () => (
             return <ReasoningPart text={part.text} />;
           case "tool-call":
             return part.toolUI ?? <ToolCard {...part} />;
+          case "data":
+            return <PiDataPart part={part} />;
           case "indicator":
             return (
               <span
@@ -135,6 +141,9 @@ const AssistantMessage: FC = () => (
         <ErrorPrimitive.Message />
       </ErrorPrimitive.Root>
     </MessagePrimitive.Error>
+    <div className="mt-1.5 ms-2">
+      <TurnCost />
+    </div>
   </MessagePrimitive.Root>
 );
 
@@ -250,7 +259,8 @@ const Composer: FC = () => {
         />
         <div className="flex items-center justify-between gap-2">
           <ModelSelector />
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            <ContextUsage />
             {/* pi 运行中仍可排队发送(followUp/steer),输入空时才显示停止 */}
             <AuiIf condition={(s) => !s.thread.isRunning || !s.composer.isEmpty}>
               <ComposerPrimitive.Send asChild>

@@ -13,7 +13,22 @@
 import type { ToolCallMessagePartProps } from "@assistant-ui/react";
 import type { PiHostUiRequest } from "@assistant-ui/react-pi";
 import { ChevronRightIcon } from "lucide-react";
-import { useState, type FC } from "react";
+import { useEffect, useRef, useState, type FC } from "react";
+
+/** 工具耗时:react-pi 投影不写 timing,前端自记 running 起止(design.md 仪表盘)。 */
+const useElapsed = (running: boolean, done: boolean): string | null => {
+  const startedAt = useRef<number>(undefined);
+  const [elapsed, setElapsed] = useState<string | null>(null);
+  useEffect(() => {
+    if (running && startedAt.current === undefined) {
+      startedAt.current = performance.now();
+    }
+    if (done && startedAt.current !== undefined && elapsed === null) {
+      setElapsed(`${((performance.now() - startedAt.current) / 1000).toFixed(1)}s`);
+    }
+  }, [running, done, elapsed]);
+  return elapsed;
+};
 
 const resultText = (result: unknown): string => {
   if (result == null) return "";
@@ -53,6 +68,7 @@ export const ToolCard: FC<ToolCallMessagePartProps> = ({
   const running = status.type === "running";
   const waiting = status.type === "requires-action";
   const failed = status.type === "incomplete";
+  const elapsed = useElapsed(running, status.type === "complete" || failed);
   const output = resultText(result);
 
   const pendingApproval =
@@ -88,6 +104,9 @@ export const ToolCard: FC<ToolCallMessagePartProps> = ({
         >
           {running ? "●" : waiting ? "◌" : failed ? "✕" : "✓"}
         </span>
+        {elapsed && (
+          <span className="ms-auto text-[12px] text-text-3">{elapsed}</span>
+        )}
       </button>
       <div className="collapse-grid" data-open={expanded}>
         <div>
