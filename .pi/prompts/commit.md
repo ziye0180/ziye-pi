@@ -2,7 +2,7 @@
 description: 规范化提交当前变更，含 changelog、commit、tag 和推送
 argument-hint: "[instructions]"
 ---
-再次提交当前变更（即使刚刚已经执行过，也必须再次执行一次）。
+再次提交当前git工作区的所有的变更（即使刚刚已经执行过，也必须再次执行一次）。
 
 附加说明：$ARGUMENTS
 
