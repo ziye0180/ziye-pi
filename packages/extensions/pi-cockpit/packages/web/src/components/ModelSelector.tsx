@@ -3,11 +3,19 @@
  * 模型目录经 bridge GET /api/pi/models 拉取一次;当前选中与切换走
  * usePiRuntimeExtras 的 metadata.config / setModel / setThinkingLevel
  * (react-pi 已把当前 thread 绑好,调用只传业务参数)。
+ *
+ * 新对话(thread 未物化)时 react-pi 的 controller 是 NOOP,setModel 会被
+ * 静默吞掉:此时先把选择暂存,调 threadListItem().initialize() 物化空
+ * thread(react-pi 首条消息同款路径),待真 controller 挂上后再应用。
  */
+import { useAui, useAuiState } from "@assistant-ui/react";
 import { usePiRuntimeExtras } from "@assistant-ui/react-pi";
 import type { PiModelInfo } from "@assistant-ui/react-pi";
 import { CheckIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FC } from "react";
+
+/** 暂存的模型选择(仅新对话物化窗口期使用)。 */
+type PendingModel = { provider: string; modelId: string };
 
 /** 一次性拉取 bridge 的模型目录;失败冒泡到 console(fail fast,不静默兜底成空)。
  * 类型直接复用 react-pi 导出的 PiModelInfo,避免本地孪生类型漂移。 */
@@ -34,14 +42,47 @@ const useModelCatalog = (): PiModelInfo[] => {
 };
 
 export const ModelSelector: FC = () => {
+  const aui = useAui();
+  const isNewThread = useAuiState((s) => s.threadListItem.status === "new");
   const { metadata, setModel, setThinkingLevel, status } = usePiRuntimeExtras();
   const models = useModelCatalog();
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<PendingModel | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  // thread 物化 + 真 controller 就绪后应用暂存选择。
+  // 就绪信号必须用 metadata.config(来自真 thread snapshot):isNewThread 翻转
+  // 那一拍 extras 可能仍是 NOOP controller,提前调 setModel 会被静默吞掉。
+  const configReady = metadata.config !== undefined;
+  useEffect(() => {
+    if (!pending || isNewThread || !configReady) return;
+    setModel(pending)
+      .catch((error: unknown) => {
+        console.error("[pi-cockpit] 应用暂存模型失败", error);
+      })
+      .finally(() => setPending(null)); // refresh 后再清,避免 label 闪回旧值
+  }, [pending, isNewThread, configReady, setModel]);
+
+  const choose = (m: PiModelInfo): void => {
+    if (isNewThread) {
+      // NOOP controller 窗口:暂存 + 物化空 thread,useEffect 收尾
+      setPending({ provider: m.provider, modelId: m.modelId });
+      aui
+        .threadListItem()
+        .initialize()
+        .catch((error: unknown) => {
+          setPending(null); // fail fast:物化失败不留假回显
+          console.error("[pi-cockpit] 初始化会话失败", error);
+        });
+    } else {
+      void setModel({ provider: m.provider, modelId: m.modelId });
+    }
+    setOpen(false);
+  };
+
   const running = status === "running";
-  const provider = metadata.config?.provider;
-  const modelId = metadata.config?.modelId;
+  const provider = pending?.provider ?? metadata.config?.provider;
+  const modelId = pending?.modelId ?? metadata.config?.modelId;
   const level = metadata.config?.thinkingLevel;
   const current = models.find(
     (m) => m.provider === provider && m.modelId === modelId,
@@ -83,10 +124,7 @@ export const ModelSelector: FC = () => {
                 <button
                   key={`${m.provider}/${m.modelId}`}
                   type="button"
-                  onClick={() => {
-                    void setModel({ provider: m.provider, modelId: m.modelId });
-                    setOpen(false);
-                  }}
+                  onClick={() => choose(m)}
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-[13px] text-text-2 transition-colors duration-200 hover:bg-surface-2 hover:text-text"
                 >
                   <CheckIcon
