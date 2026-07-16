@@ -7,11 +7,13 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { api } from "./routes.js";
+import { cockpit } from "./cockpit-routes.js";
 import { HOST, PORT } from "./env.js";
 import { startupSummary } from "./pi-client.js";
 
 const app = new Hono();
 app.route("/api/pi", api);
+app.route("/api/cockpit", cockpit);
 app.get("/healthz", (c) => c.json({ ok: true }));
 
 serve({ fetch: app.fetch, hostname: HOST, port: PORT }, (info) => {
