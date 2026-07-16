@@ -12,6 +12,10 @@ import {
 import { createPiHttpClient, usePiRuntime } from "@assistant-ui/react-pi";
 import { useMemo, type ReactNode } from "react";
 
+/** 浏览器侧 PiClient 单例:runtime 与独立调用方(SlashCommands / SessionCost
+ * 等直调契约方法的组件)共享同一实例,避免各自建流。 */
+export const piClient = createPiHttpClient();
+
 /** URL <-> 当前会话同步:?t=<threadId>,刷新/直链回到同一会话。 */
 const readThreadIdFromUrl = (): string | undefined =>
   new URLSearchParams(window.location.search).get("t") ?? undefined;
@@ -24,7 +28,7 @@ const writeThreadIdToUrl = (id: string | undefined): void => {
 };
 
 export function PiRuntimeProvider({ children }: { children: ReactNode }) {
-  const client = useMemo(() => createPiHttpClient(), []);
+  const client = piClient;
   const initialThreadId = useMemo(readThreadIdFromUrl, []);
   // 附件:图片(data-URL 直达 pi 的 image content)+ 文本文件(并入 text)。
   // pi 内容模型只收 text/image,其余类型 adapter add 时会抛错并提示。

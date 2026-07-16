@@ -24,6 +24,9 @@
  *   POST   /threads/:id/unarchive   → 204
  *   DELETE /threads/:id             → 204
  *   POST   /threads/:id/host-ui     → 204                   (body: { response })
+ *   GET    /threads/:id/stats       → PiSessionStats
+ *   POST   /threads/:id/compact     → 204                   (body: { customInstructions? })
+ *   GET    /threads/:id/export/html → text/html (自包含文档)
  *   GET    /threads/:id/events      → SSE of PiClientEvent (?snapshot=false skips initial snapshot)
  */
 import { openPiEventStream } from "./eventSource.js";
@@ -33,6 +36,7 @@ import type {
   PiHostUiResponse,
   PiModelInfo,
   PiSendMessageInput,
+  PiSessionStats,
   PiThinkingLevel,
   PiThreadMetadata,
   PiThreadSnapshot,
@@ -195,6 +199,27 @@ export const createPiHttpClient = (
       await assertOk(
         await send(`${threadUrl(threadId)}/host-ui`, "POST", { response }),
       );
+    },
+
+    getSessionStats: async (threadId) =>
+      readJson<PiSessionStats>(
+        await send(`${threadUrl(threadId)}/stats`, "GET"),
+      ),
+
+    compact: async (threadId, customInstructions) => {
+      await assertOk(
+        await send(
+          `${threadUrl(threadId)}/compact`,
+          "POST",
+          customInstructions !== undefined ? { customInstructions } : {},
+        ),
+      );
+    },
+
+    exportHtml: async (threadId) => {
+      const response = await send(`${threadUrl(threadId)}/export/html`, "GET");
+      await assertOk(response);
+      return response.text();
     },
 
     subscribe: (threadId, listener, subscribeOptions) => {

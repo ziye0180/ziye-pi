@@ -62,6 +62,10 @@ export const createPiNodeClient = (
     setThinkingLevel: (threadId, level) =>
       supervisor.setThinkingLevel(threadId, level),
     renameThread: (threadId, title) => supervisor.renameThread(threadId, title),
+    getSessionStats: (threadId) => supervisor.getSessionStats(threadId),
+    compact: (threadId, customInstructions) =>
+      supervisor.compact(threadId, customInstructions),
+    exportHtml: (threadId) => supervisor.exportHtml(threadId),
     archiveThread: (threadId) => supervisor.archiveThread(threadId),
     unarchiveThread: (threadId) => supervisor.unarchiveThread(threadId),
     deleteThread: (threadId) => supervisor.deleteThread(threadId),

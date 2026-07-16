@@ -1,6 +1,6 @@
 /**
- * react-pi 官方 wire 契约的 Hono 实现(SSOT: @assistant-ui/react-pi
- * src/client/httpClient.ts 头注释的 15 端点表,不得私改 shape)。
+ * react-pi wire 契约的 Hono 实现(SSOT: 本 workspace vendored
+ * packages/react-pi/src/client/httpClient.ts 头注释的 18 端点表,改契约先改那里)。
  *
  * 错误处理:fail fast —— 任何异常 500 + JSON {error},createPiHttpClient 会把
  * 文本原样冒泡到 UI;不吞错、不兜底。
@@ -127,6 +127,27 @@ api.post("/threads/:id/host-ui", async (c) => {
   const { response } = await c.req.json();
   await piClient.respondToHostUiRequest(c.req.param("id"), response);
   return noContent();
+});
+
+// ── 统计 / 压缩 / 导出 ─────────────────────────────────────────────────
+
+api.get("/threads/:id/stats", async (c) => {
+  return c.json(await piClient.getSessionStats(c.req.param("id")));
+});
+
+api.post("/threads/:id/compact", async (c) => {
+  const { customInstructions } = (await c.req.json()) as {
+    customInstructions?: string;
+  };
+  await piClient.compact(c.req.param("id"), customInstructions);
+  return noContent();
+});
+
+api.get("/threads/:id/export/html", async (c) => {
+  const html = await piClient.exportHtml(c.req.param("id"));
+  return new Response(html, {
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
 });
 
 // ── SSE 事件流 ──────────────────────────────────────────────────────────

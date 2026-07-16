@@ -478,6 +478,24 @@ export type PiThreadSnapshot = {
   lastError?: string;
 };
 
+/** Session-level aggregate statistics (mirror of Pi's `SessionStats` subset;
+ * `contextUsage` is intentionally omitted — it already streams via extras). */
+export type PiSessionStats = {
+  userMessages: number;
+  assistantMessages: number;
+  toolCalls: number;
+  totalMessages: number;
+  tokens: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    total: number;
+  };
+  /** Aggregate session cost in USD. */
+  cost: number;
+};
+
 export interface PiClient {
   listThreads(input?: {
     workspacePath?: string;
@@ -513,6 +531,17 @@ export interface PiClient {
   archiveThread(threadId: string): Promise<void>;
   unarchiveThread(threadId: string): Promise<void>;
   deleteThread(threadId: string): Promise<void>;
+
+  /** Session-level aggregate stats (message counts, tokens, cost). */
+  getSessionStats(threadId: string): Promise<PiSessionStats>;
+
+  /** Manually trigger context compaction. Progress surfaces through the
+   * regular event stream (`compaction_start` / `compaction_end`). */
+  compact(threadId: string, customInstructions?: string): Promise<void>;
+
+  /** Export the session as a self-contained HTML document (Pi's native
+   * exporter). Returns the raw HTML string for the caller to save. */
+  exportHtml(threadId: string): Promise<string>;
 
   /** Answer a blocking extension UI request (the approval/permission surface). */
   respondToHostUiRequest(

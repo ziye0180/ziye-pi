@@ -3,7 +3,6 @@
  * 视觉规格 SSOT: docs/design.md;分组渲染逻辑参照官方 examples/with-pi thread.tsx。
  */
 import {
-  ActionBarMorePrimitive,
   ActionBarPrimitive,
   AuiIf,
   ComposerPrimitive,
@@ -26,7 +25,6 @@ import {
   DownloadIcon,
   ListEndIcon,
   MicIcon,
-  MoreHorizontalIcon,
   SquareIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -36,7 +34,7 @@ import {
   ComposerAttachments,
   UserMessageAttachments,
 } from "./Attachments";
-import { ActivityBanner, ContextUsage } from "./Dashboard";
+import { ActivityBanner, ContextUsage, SessionCost } from "./Dashboard";
 import { HostUiRequests } from "./HostUiRequests";
 import { MarkdownText } from "./MarkdownText";
 import { ModelSelector } from "./ModelSelector";
@@ -216,29 +214,15 @@ const AssistantActionBar: FC = () => (
         </AuiIf>
       </button>
     </ActionBarPrimitive.Copy>
-    <ActionBarMorePrimitive.Root>
-      <ActionBarMorePrimitive.Trigger asChild>
-        <button
-          type="button"
-          aria-label="更多"
-          className="rounded-md p-1 transition-colors duration-200 hover:text-text data-[state=open]:text-text"
-        >
-          <MoreHorizontalIcon className="size-3.5" />
-        </button>
-      </ActionBarMorePrimitive.Trigger>
-      <ActionBarMorePrimitive.Content
-        side="bottom"
-        align="start"
-        className="z-50 min-w-32 overflow-hidden rounded-md border border-border bg-surface p-1 shadow-md"
+    <ActionBarPrimitive.ExportMarkdown asChild>
+      <button
+        type="button"
+        aria-label="导出 Markdown"
+        className="rounded-md p-1 transition-colors duration-200 hover:text-text"
       >
-        <ActionBarPrimitive.ExportMarkdown asChild>
-          <ActionBarMorePrimitive.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] text-text-2 outline-none transition-colors duration-200 select-none hover:bg-surface-2 hover:text-text">
-            <DownloadIcon className="size-3.5" />
-            导出 Markdown
-          </ActionBarMorePrimitive.Item>
-        </ActionBarPrimitive.ExportMarkdown>
-      </ActionBarMorePrimitive.Content>
-    </ActionBarMorePrimitive.Root>
+        <DownloadIcon className="size-3.5" />
+      </button>
+    </ActionBarPrimitive.ExportMarkdown>
   </ActionBarPrimitive.Root>
 );
 
@@ -383,6 +367,7 @@ const Composer: FC = () => {
               </AuiIf>
             </div>
             <div className="flex items-center gap-2">
+              <SessionCost />
               <ContextUsage />
               {/* pi 运行中仍可排队发送(followUp/steer),输入空时才显示停止 */}
               <AuiIf condition={(s) => !s.thread.isRunning || !s.composer.isEmpty}>

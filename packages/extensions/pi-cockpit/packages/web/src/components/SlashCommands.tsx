@@ -1,29 +1,30 @@
 /**
- * 斜杠命令(design.md W5;实包 API 已核实)。
- * pi 无服务端 slash 执行 API,故命令全部映射 cockpit 本地动作:
- *   /new 新会话 · /clear 清空队列 · /export 导出会话 JSON
- * 用 unstable_useSlashCommandAdapter(commands.execute 是本地闭包回调)+
- * ComposerPrimitive.Unstable_TriggerPopover* 弹层。
+ * 斜杠命令(design.md W5;热身批升级 /export 原生化 + 新增 /compact)。
+ * 命令映射:
+ *   /new     新会话(本地动作)
+ *   /clear   清空排队消息(extras.clearQueue)
+ *   /export  pi 原生 HTML 导出(vendored 契约 exportHtml)
+ *   /compact 手动压缩上下文(vendored 契约 compact,进度走事件流横幅)
+ * /export 与 /compact 依赖已物化 thread(remoteId 存在),新对话不出现。
  *
  * ⚠️ Unstable_ API:官方标注 "may change without notice"(0.14.26)。
  * 已按任务包接受漂移风险,升级 assistant-ui 时需回归此文件。
  */
-import { ComposerPrimitive, useAui } from "@assistant-ui/react";
+import { ComposerPrimitive, useAui, useAuiState } from "@assistant-ui/react";
 import { usePiRuntimeExtras } from "@assistant-ui/react-pi";
 import { unstable_useSlashCommandAdapter } from "@assistant-ui/react";
 import type { FC } from "react";
+import { piClient } from "../PiRuntimeProvider";
 
-/** 导出当前会话为 JSON 文件。 */
-const exportThread = (aui: ReturnType<typeof useAui>) => {
+/** 下载 pi 原生自包含 HTML 会话文档。失败冒泡 console(fail fast)。 */
+const exportSessionHtml = async (threadId: string): Promise<void> => {
   try {
-    const repo = aui.thread().export();
-    const blob = new Blob([JSON.stringify(repo, null, 2)], {
-      type: "application/json",
-    });
+    const html = await piClient.exportHtml(threadId);
+    const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "pi-cockpit-session.json";
+    a.download = `pi-session-${threadId}.html`;
     a.click();
     URL.revokeObjectURL(url);
   } catch (error) {
@@ -35,6 +36,7 @@ const exportThread = (aui: ReturnType<typeof useAui>) => {
 export const SlashCommandRoot: FC<{ children: React.ReactNode }> = ({ children }) => {
   const aui = useAui();
   const { clearQueue } = usePiRuntimeExtras();
+  const threadId = useAuiState((s) => s.threadListItem.remoteId);
 
   const slash = unstable_useSlashCommandAdapter({
     commands: [
@@ -52,12 +54,29 @@ export const SlashCommandRoot: FC<{ children: React.ReactNode }> = ({ children }
           void clearQueue();
         },
       },
-      {
-        id: "export",
-        label: "导出会话",
-        description: "下载当前会话 JSON",
-        execute: () => exportThread(aui),
-      },
+      ...(threadId
+        ? [
+            {
+              id: "export",
+              label: "导出会话",
+              description: "下载 pi 原生 HTML 会话文档",
+              execute: () => {
+                void exportSessionHtml(threadId);
+              },
+            },
+            {
+              id: "compact",
+              label: "压缩上下文",
+              description: "手动触发上下文压缩",
+              execute: () => {
+                // 进度经事件流 compaction_start/end 显示在 ActivityBanner
+                piClient.compact(threadId).catch((error: unknown) => {
+                  console.error("[pi-cockpit] 手动压缩失败", error);
+                });
+              },
+            },
+          ]
+        : []),
     ],
     removeOnExecute: true,
   });

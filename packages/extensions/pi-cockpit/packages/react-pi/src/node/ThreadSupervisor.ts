@@ -22,7 +22,10 @@ import {
   ModelRegistry,
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
-import { unlink } from "node:fs/promises";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFile, rm, unlink } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import {
   deriveReadiness,
   mapModelInfo,
@@ -53,6 +56,7 @@ import type {
   PiHostUiResponse,
   PiRuntimeReadiness,
   PiSendMessageInput,
+  PiSessionStats,
 } from "../types.js";
 
 /** The `model` shape `createAgentSession` accepts (a Pi `Model`), derived from
@@ -111,6 +115,10 @@ export class PiThreadSupervisor {
   private readonly catalogCache = new Map<string, CatalogCacheEntry>();
   private readonly catalogInfoByThreadId = new Map<string, PiSessionInfo>();
 
+  /** Persisted archive registry: mirrors `archivedSessionFiles` on disk so
+   * archived state survives supervisor restarts (was an in-memory Set only). */
+  private readonly archiveFile: string;
+
   constructor(options: PiThreadSupervisorOptions = {}) {
     this.workspacePath = options.workspacePath ?? process.cwd();
     this.agentDir = options.agentDir;
@@ -119,6 +127,42 @@ export class PiThreadSupervisor {
       AuthStorage.create(
         options.agentDir ? `${options.agentDir}/auth.json` : undefined,
       ),
+    );
+    this.archiveFile = join(
+      options.agentDir ?? join(homedir(), ".pi", "agent"),
+      "cockpit-archive.json",
+    );
+    for (const file of this.loadArchivedSessionFiles()) {
+      this.archivedSessionFiles.add(file);
+    }
+  }
+
+  /** Read the persisted archive registry. Missing file = empty (first run);
+   * a corrupt file throws — fail fast rather than silently un-archiving. */
+  private loadArchivedSessionFiles(): string[] {
+    let raw: string;
+    try {
+      raw = readFileSync(this.archiveFile, "utf8");
+    } catch (error) {
+      if ((error as { code?: string }).code === "ENOENT") return [];
+      throw error;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      !Array.isArray(parsed) ||
+      parsed.some((entry) => typeof entry !== "string")
+    ) {
+      throw new Error(`Corrupt cockpit archive registry: ${this.archiveFile}`);
+    }
+    return parsed as string[];
+  }
+
+  private persistArchivedSessionFiles(): void {
+    mkdirSync(dirname(this.archiveFile), { recursive: true });
+    writeFileSync(
+      this.archiveFile,
+      `${JSON.stringify([...this.archivedSessionFiles], null, 2)}\n`,
+      "utf8",
     );
   }
 
@@ -247,6 +291,7 @@ export class PiThreadSupervisor {
     const sessionFile = record?.session.sessionFile ?? info?.path;
     if (!sessionFile) throw new Error(`Unknown Pi thread: ${threadId}`);
     this.archivedSessionFiles.add(sessionFile);
+    this.persistArchivedSessionFiles();
     this.invalidateCatalog(
       record?.workspacePath ?? info?.cwd ?? this.workspacePath,
     );
@@ -260,7 +305,10 @@ export class PiThreadSupervisor {
 
   async unarchiveThread(threadId: string): Promise<void> {
     const info = await this.findSessionInfo(threadId);
-    if (info) this.archivedSessionFiles.delete(info.path);
+    if (info) {
+      this.archivedSessionFiles.delete(info.path);
+      this.persistArchivedSessionFiles();
+    }
     const record = this.records.get(threadId);
     if (record) {
       this.emit(record, {
@@ -283,12 +331,59 @@ export class PiThreadSupervisor {
       this.records.delete(threadId);
       if (sessionFile) this.recordsBySessionFile.delete(sessionFile);
     }
-    this.archivedSessionFiles.delete(sessionFile);
+    if (this.archivedSessionFiles.delete(sessionFile)) {
+      this.persistArchivedSessionFiles();
+    }
     this.catalogInfoByThreadId.delete(threadId);
     await unlink(sessionFile).catch((err: unknown) => {
       if ((err as { code?: string }).code !== "ENOENT") throw err;
     });
     if (workspacePath) this.invalidateCatalog(workspacePath);
+  }
+
+  async getSessionStats(threadId: string): Promise<PiSessionStats> {
+    const record = await this.ensureOpen(threadId);
+    const stats = record.session.getSessionStats();
+    return {
+      userMessages: stats.userMessages,
+      assistantMessages: stats.assistantMessages,
+      toolCalls: stats.toolCalls,
+      totalMessages: stats.totalMessages,
+      tokens: stats.tokens,
+      cost: stats.cost,
+    };
+  }
+
+  /** Compaction result is intentionally dropped: progress and the rewritten
+   * transcript arrive through the regular event stream (`compaction_start` /
+   * `compaction_end` → snapshot refresh in the reducer). Failures (e.g.
+   * "session too small") are broadcast as `error` events so subscribed UIs
+   * surface them, then rethrown for the HTTP caller. */
+  async compact(threadId: string, customInstructions?: string): Promise<void> {
+    const record = await this.ensureOpen(threadId);
+    try {
+      await record.session.compact(customInstructions);
+    } catch (error) {
+      record.lastError = errorText(error);
+      this.emit(record, { type: "error", error: record.lastError });
+      throw error;
+    }
+  }
+
+  /** Pi's exporter writes to a file; round-trip through a temp path and hand
+   * back the HTML string so browser callers can save it client-side. */
+  async exportHtml(threadId: string): Promise<string> {
+    const record = await this.ensureOpen(threadId);
+    const outputPath = join(
+      tmpdir(),
+      `pi-cockpit-export-${threadId}-${Date.now()}.html`,
+    );
+    const written = await record.session.exportToHtml(outputPath);
+    try {
+      return await readFile(written, "utf8");
+    } finally {
+      await rm(written, { force: true });
+    }
   }
 
   async respondToHostUiRequest(
