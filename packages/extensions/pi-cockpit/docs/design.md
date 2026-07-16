@@ -32,9 +32,21 @@
 
 ## 布局
 
-- 单列居中窄栏:max-width 44rem,左右 padding 16px
-- Composer 底部 sticky,与内容间自然留白;页面无侧栏(M1)
+- 双区:左会话侧栏(固定 260px)+ 右对话主区(M2 起)
+- 主区内单列居中窄栏:max-width 44rem,左右 padding 16px
+- Composer 底部 sticky,与内容间自然留白
 - 空态(Welcome):垂直居中问候语,大字号(24px semibold)+ 次级副语
+
+## 会话侧栏(M2)
+
+- 宽 260px,--bg 底,右侧 1px --border 分隔(主区内容浮在其上,层次靠边框不靠色差)
+- 顶部"新建对话"按钮:全宽,--surface 底 + 1px --border,radius 12px,左侧 + 号,hover --surface-2
+- 列表:会话条目纵向排列可滚动;每条 radius 10px、px3 py2、标题单行截断 14px
+- 当前会话:--surface-2 底 + --text 文本(高亮);非当前 hover 态 --surface + --text-2 文本
+- 删除按钮:条目右侧,默认隐藏(opacity 0),条目 hover 时浮现;--text-3,hover --danger
+- 标题 fallback:pi 会话无 title 时显示"未命名对话"
+- 空列表:仅保留新建按钮
+- 折叠/窄屏响应式留到 M3;M2 先做桌面固定侧栏
 
 ## 排版
 
