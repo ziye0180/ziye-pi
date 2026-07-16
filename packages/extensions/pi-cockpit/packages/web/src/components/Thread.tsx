@@ -45,6 +45,7 @@ import { MarkdownText } from "./MarkdownText";
 import { ModelSelector } from "./ModelSelector";
 import { PiDataPart } from "./PiDataPart";
 import { ReasoningGroup, ReasoningPart } from "./Reasoning";
+import { SlashCommandRoot } from "./SlashCommands";
 import { ToolCard } from "./ToolCard";
 import { TurnCost } from "./TurnCost";
 
@@ -372,6 +373,7 @@ const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="relative flex w-full flex-col">
       <QueueCard />
+      <SlashCommandRoot>
       <ComposerPrimitive.AttachmentDropzone asChild>
         <div className="flex w-full flex-col gap-2 rounded-(--radius-composer) border border-border bg-surface p-2.5 transition-shadow duration-200 focus-within:border-border-strong focus-within:ring-2 focus-within:ring-white/8 data-[dragging=true]:border-dashed data-[dragging=true]:border-border-strong">
           <ComposerAttachments />
@@ -440,6 +442,7 @@ const Composer: FC = () => {
           </div>
         </div>
       </ComposerPrimitive.AttachmentDropzone>
+      </SlashCommandRoot>
     </ComposerPrimitive.Root>
   );
 };
