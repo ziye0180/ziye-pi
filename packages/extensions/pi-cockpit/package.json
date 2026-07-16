@@ -1,0 +1,10 @@
+{
+  "name": "pi-cockpit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --recursive --parallel run dev",
+    "typecheck": "pnpm --recursive run typecheck",
+    "build": "pnpm --recursive run build"
+  }
+}
