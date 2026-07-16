@@ -24,6 +24,7 @@ export const ToolCard: FC<ToolCallMessagePartProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const running = status.type === "running";
+  const waiting = status.type === "requires-action";
   const failed = status.type === "incomplete";
   const output = resultText(result);
 
@@ -44,12 +45,14 @@ export const ToolCard: FC<ToolCallMessagePartProps> = ({
           className={
             running
               ? "animate-pulse-dot text-text-2"
-              : failed
-                ? "text-danger"
-                : "text-text-3"
+              : waiting
+                ? "text-text-2"
+                : failed
+                  ? "text-danger"
+                  : "text-text-3"
           }
         >
-          {running ? "●" : failed ? "✕" : "✓"}
+          {running ? "●" : waiting ? "◌" : failed ? "✕" : "✓"}
         </span>
       </button>
       <div className="collapse-grid" data-open={open}>

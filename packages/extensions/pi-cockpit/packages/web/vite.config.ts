@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // 仅绑 127.0.0.1:与 bridge 同纪律,不对局域网暴露
+// bridge 端口与 bridge/src/env.ts 的 PI_COCKPIT_PORT 同源,避免双源漂移
+const bridgePort = process.env["PI_COCKPIT_PORT"] ?? "31460";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
@@ -11,7 +14,10 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       // SSE 走同一 proxy;http-proxy 对流式响应原生支持
-      "/api/pi": { target: "http://127.0.0.1:31460", changeOrigin: false },
+      "/api/pi": {
+        target: `http://127.0.0.1:${bridgePort}`,
+        changeOrigin: false,
+      },
     },
   },
 });

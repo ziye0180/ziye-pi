@@ -23,7 +23,7 @@ import {
   SquareIcon,
   Trash2Icon,
 } from "lucide-react";
-import type { FC } from "react";
+import { useState, type FC } from "react";
 import { HostUiRequests } from "./HostUiRequests";
 import { MarkdownText } from "./MarkdownText";
 import { ModelSelector } from "./ModelSelector";
@@ -179,9 +179,11 @@ const QueueCard: FC = () => {
   const aui = useAui();
   const { clearQueue } = usePiRuntimeExtras();
   const queueLength = useAuiState((s) => s.composer.queue.length);
+  const [error, setError] = useState<string | null>(null);
   if (queueLength === 0) return null;
 
   const handleClear = () => {
+    setError(null);
     clearQueue()
       .then(({ steering, followUp }) => {
         const restored = [...steering, ...followUp].join("\n");
@@ -190,13 +192,15 @@ const QueueCard: FC = () => {
         const current = composer.getState().text;
         composer.setText(current ? `${current}\n${restored}` : restored);
       })
-      .catch((error: unknown) => {
-        console.error("清空队列失败", error);
+      .catch((err: unknown) => {
+        console.error("清空队列失败", err);
+        setError("清空队列失败");
       });
   };
 
   return (
     <div className="-mb-6 flex flex-col gap-1.5 rounded-t-(--radius-composer) border border-b-0 border-border bg-surface-2/50 px-4 pt-2.5 pb-8 text-[13px] text-text-2">
+      {error && <span className="text-[12px] text-danger">{error}</span>}
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium">已排队</span>
         <button

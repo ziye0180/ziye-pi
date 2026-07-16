@@ -4,6 +4,10 @@
  *
  * 错误处理:fail fast —— 任何异常 500 + JSON {error},createPiHttpClient 会把
  * 文本原样冒泡到 UI;不吞错、不兜底。
+ *
+ * 边界解析策略:请求体(input/level/response/setModel 等)信任唯一契约 client
+ * (react-pi createPiHttpClient),不逐字段预校验;SDK 对非法输入自会抛错经 onError
+ * 冒泡 500。仅对会写入持久状态的 rename title 做非空校验,POST /threads 做 JSON 合法性校验。
  */
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
@@ -41,8 +45,13 @@ api.get("/threads", async (c) => {
 });
 
 api.post("/threads", async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  return c.json(await piClient.createThread(body));
+  // 畸形 JSON 不静默兜底成 {}(fail fast);合法空 body 由 client 发 {}
+  const parsed = await c.req
+    .json()
+    .then((body) => ({ ok: true as const, body }))
+    .catch(() => ({ ok: false as const, body: undefined }));
+  if (!parsed.ok) return badRequest("请求体不是合法 JSON");
+  return c.json(await piClient.createThread(parsed.body));
 });
 
 api.get("/threads/:id", async (c) => {
@@ -131,28 +140,30 @@ api.get("/threads/:id/events", (c) => {
     let unsubscribe: (() => void) | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
 
-    const finished = new Promise<void>((resolve) => {
-      stream.onAbort(() => {
-        unsubscribe?.();
-        if (heartbeat) clearInterval(heartbeat);
-        resolve();
+    try {
+      const finished = new Promise<void>((resolve) => {
+        stream.onAbort(resolve);
       });
-    });
 
-    // 立即冲开缓冲代理
-    await stream.write(": connected\n\n");
-    heartbeat = setInterval(() => {
-      void stream.write(": ping\n\n");
-    }, SSE_HEARTBEAT_MS);
+      // 立即冲开缓冲代理
+      await stream.write(": connected\n\n");
+      heartbeat = setInterval(() => {
+        void stream.write(": ping\n\n");
+      }, SSE_HEARTBEAT_MS);
 
-    unsubscribe = piClient.subscribe(
-      threadId,
-      (event: PiClientEvent) => {
-        void stream.writeSSE({ data: JSON.stringify(event) });
-      },
-      { includeSnapshot },
-    );
+      unsubscribe = piClient.subscribe(
+        threadId,
+        (event: PiClientEvent) => {
+          void stream.writeSSE({ data: JSON.stringify(event) });
+        },
+        { includeSnapshot },
+      );
 
-    await finished;
+      await finished;
+    } finally {
+      // 结构性清理:正常结束/abort/回调抛错都执行,免疫 heartbeat interval 泄漏
+      if (heartbeat) clearInterval(heartbeat);
+      unsubscribe?.();
+    }
   });
 });
