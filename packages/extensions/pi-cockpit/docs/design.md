@@ -80,6 +80,17 @@
 - 运行中(status==="running")禁止切换:按钮与条目 disabled,--text-3
 - 点击面板外或选中后关闭
 
+## 审批卡(M2)
+
+- pi 的 human-in-the-loop:工具/扩展调 confirm/select/input/editor 时弹出,阻塞等响应
+- 位置:composer 上方(与 readiness/error 横幅同区),一次只显示队首一个
+- 卡片:--surface 底、1px --border、radius 16px、p3;标题 14px --text 加粗
+- confirm:message 次级文本 + 右下「拒绝」(ghost)/「批准」(白底黑字主按钮)
+- select:选项横向 pill(--surface-2 底、1px --border,hover --text),点即响应;仅保留「取消」
+- input:单行输入框(--bg 底 1px --border)+「取消」/「提交」
+- editor:多行 textarea(等宽 12px、prefill 回填)+「取消」/「提交」
+- 拒绝/取消走 dismiss;动效 200-250ms
+
 ## 动效(P012 铁律)
 
 - 全部 transition:200-300ms cubic-bezier(0.22, 1, 0.36, 1);禁 linear;禁裸条件渲染闪切

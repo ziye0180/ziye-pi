@@ -24,6 +24,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import type { FC } from "react";
+import { HostUiRequests } from "./HostUiRequests";
 import { MarkdownText } from "./MarkdownText";
 import { ModelSelector } from "./ModelSelector";
 import { ReasoningGroup, ReasoningPart } from "./Reasoning";
@@ -48,6 +49,7 @@ export const Thread: FC = () => {
             <ScrollToBottom />
             <ReadinessBanner />
             <LastErrorBanner />
+            <HostUiRequests />
             <Composer />
           </ThreadPrimitive.ViewportFooter>
         </div>
