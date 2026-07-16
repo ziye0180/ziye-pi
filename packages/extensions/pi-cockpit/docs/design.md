@@ -80,6 +80,12 @@
 - 运行中(status==="running")禁止切换:按钮与条目 disabled,--text-3
 - 点击面板外或选中后关闭
 
+## 消息操作 + 附件(M3 W4)
+
+- ActionBar(assistant 消息):hover 浮现,--text-3 图标按钮 gap1;复制(复制后 ✓ 1.5s)、导出 Markdown 进溢出菜单(...);位置在消息 footer 与 TurnCost 同行
+- 附件:composer 输入框上方显待发附件卡(--surface-2 底 radius10,缩略图/名称/移除 ×);左下加"回形针"选文件按钮(与 ModelSelector 同排);整个 composer 是拖放区(拖入时边框 --border-strong 虚线);消息侧图片附件回显(缩略图)
+- 附件仅图片 + 文本(pi 内容模型限制),其他类型 add 时报错提示
+
 ## 仪表盘(M3 W3)
 
 - context 用量:composer 右下发送键左侧,细环或"N%"文字(13px --text-3);>80% 变 --text-2 加粗提示(不用 --danger,禁装饰);hover tooltip 显 tokens/contextWindow

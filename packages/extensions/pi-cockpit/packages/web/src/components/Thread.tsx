@@ -3,6 +3,8 @@
  * 视觉规格 SSOT: docs/design.md;分组渲染逻辑参照官方 examples/with-pi thread.tsx。
  */
 import {
+  ActionBarMorePrimitive,
+  ActionBarPrimitive,
   AuiIf,
   ComposerPrimitive,
   ErrorPrimitive,
@@ -19,11 +21,20 @@ import {
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  CheckIcon,
+  CopyIcon,
+  DownloadIcon,
   ListEndIcon,
+  MoreHorizontalIcon,
   SquareIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useState, type FC } from "react";
+import {
+  ComposerAddAttachment,
+  ComposerAttachments,
+  UserMessageAttachments,
+} from "./Attachments";
 import { ActivityBanner, ContextUsage } from "./Dashboard";
 import { HostUiRequests } from "./HostUiRequests";
 import { MarkdownText } from "./MarkdownText";
@@ -82,9 +93,10 @@ const ThreadMessage: FC = () => {
 const UserMessage: FC = () => (
   <MessagePrimitive.Root
     data-role="user"
-    className="animate-rise-in flex flex-col items-end"
+    className="animate-rise-in flex flex-col items-end gap-1.5"
   >
-    <div className="max-w-[85%] rounded-(--radius-bubble) bg-surface-2 px-4 py-2.5 wrap-break-word">
+    <UserMessageAttachments />
+    <div className="max-w-[85%] rounded-(--radius-bubble) bg-surface-2 px-4 py-2.5 wrap-break-word empty:hidden">
       <MessagePrimitive.Parts />
     </div>
   </MessagePrimitive.Root>
@@ -141,10 +153,58 @@ const AssistantMessage: FC = () => (
         <ErrorPrimitive.Message />
       </ErrorPrimitive.Root>
     </MessagePrimitive.Error>
-    <div className="mt-1.5 ms-2">
+    <div className="mt-1.5 ms-2 flex items-center gap-3">
+      <AssistantActionBar />
       <TurnCost />
     </div>
   </MessagePrimitive.Root>
+);
+
+/** assistant 消息操作条(design.md W4):复制 + 导出(溢出菜单),hover 浮现。 */
+const AssistantActionBar: FC = () => (
+  <ActionBarPrimitive.Root
+    hideWhenRunning
+    autohide="not-last"
+    className="flex items-center gap-1 text-text-3"
+  >
+    <ActionBarPrimitive.Copy asChild>
+      <button
+        type="button"
+        aria-label="复制"
+        className="rounded-md p-1 transition-colors duration-200 hover:text-text"
+      >
+        <AuiIf condition={(s) => s.message.isCopied}>
+          <CheckIcon className="size-3.5" />
+        </AuiIf>
+        <AuiIf condition={(s) => !s.message.isCopied}>
+          <CopyIcon className="size-3.5" />
+        </AuiIf>
+      </button>
+    </ActionBarPrimitive.Copy>
+    <ActionBarMorePrimitive.Root>
+      <ActionBarMorePrimitive.Trigger asChild>
+        <button
+          type="button"
+          aria-label="更多"
+          className="rounded-md p-1 transition-colors duration-200 hover:text-text data-[state=open]:text-text"
+        >
+          <MoreHorizontalIcon className="size-3.5" />
+        </button>
+      </ActionBarMorePrimitive.Trigger>
+      <ActionBarMorePrimitive.Content
+        side="bottom"
+        align="start"
+        className="z-50 min-w-32 overflow-hidden rounded-md border border-border bg-surface p-1 shadow-md"
+      >
+        <ActionBarPrimitive.ExportMarkdown asChild>
+          <ActionBarMorePrimitive.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] text-text-2 outline-none transition-colors duration-200 select-none hover:bg-surface-2 hover:text-text">
+            <DownloadIcon className="size-3.5" />
+            导出 Markdown
+          </ActionBarMorePrimitive.Item>
+        </ActionBarPrimitive.ExportMarkdown>
+      </ActionBarMorePrimitive.Content>
+    </ActionBarMorePrimitive.Root>
+  </ActionBarPrimitive.Root>
 );
 
 const ScrollToBottom: FC = () => (
@@ -248,46 +308,52 @@ const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="relative flex w-full flex-col">
       <QueueCard />
-      <div className="flex w-full flex-col gap-2 rounded-(--radius-composer) border border-border bg-surface p-2.5 transition-shadow duration-200 focus-within:border-border-strong focus-within:ring-2 focus-within:ring-white/8">
-        <ComposerPrimitive.Input
-          placeholder={placeholder}
-          disabled={notReady}
-          rows={1}
-          autoFocus
-          aria-label="消息输入"
-          className="max-h-40 min-h-9 w-full resize-none bg-transparent px-1.5 py-1 text-[15px] outline-none placeholder:text-text-3"
-        />
-        <div className="flex items-center justify-between gap-2">
-          <ModelSelector />
-          <div className="flex items-center gap-2">
-            <ContextUsage />
-            {/* pi 运行中仍可排队发送(followUp/steer),输入空时才显示停止 */}
-            <AuiIf condition={(s) => !s.thread.isRunning || !s.composer.isEmpty}>
-              <ComposerPrimitive.Send asChild>
-                <button
-                  type="button"
-                  aria-label="发送"
-                  disabled={notReady}
-                  className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg transition-opacity duration-200 disabled:bg-surface-2 disabled:text-text-3"
-                >
-                  <ArrowUpIcon className="size-4" />
-                </button>
-              </ComposerPrimitive.Send>
-            </AuiIf>
-            <AuiIf condition={(s) => s.thread.isRunning && s.composer.isEmpty}>
-              <ComposerPrimitive.Cancel asChild>
-                <button
-                  type="button"
-                  aria-label="停止生成"
-                  className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg"
-                >
-                  <SquareIcon className="size-3 fill-current" />
-                </button>
-              </ComposerPrimitive.Cancel>
-            </AuiIf>
+      <ComposerPrimitive.AttachmentDropzone asChild>
+        <div className="flex w-full flex-col gap-2 rounded-(--radius-composer) border border-border bg-surface p-2.5 transition-shadow duration-200 focus-within:border-border-strong focus-within:ring-2 focus-within:ring-white/8 data-[dragging=true]:border-dashed data-[dragging=true]:border-border-strong">
+          <ComposerAttachments />
+          <ComposerPrimitive.Input
+            placeholder={placeholder}
+            disabled={notReady}
+            rows={1}
+            autoFocus
+            aria-label="消息输入"
+            className="max-h-40 min-h-9 w-full resize-none bg-transparent px-1.5 py-1 text-[15px] outline-none placeholder:text-text-3"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <ModelSelector />
+              <ComposerAddAttachment />
+            </div>
+            <div className="flex items-center gap-2">
+              <ContextUsage />
+              {/* pi 运行中仍可排队发送(followUp/steer),输入空时才显示停止 */}
+              <AuiIf condition={(s) => !s.thread.isRunning || !s.composer.isEmpty}>
+                <ComposerPrimitive.Send asChild>
+                  <button
+                    type="button"
+                    aria-label="发送"
+                    disabled={notReady}
+                    className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg transition-opacity duration-200 disabled:bg-surface-2 disabled:text-text-3"
+                  >
+                    <ArrowUpIcon className="size-4" />
+                  </button>
+                </ComposerPrimitive.Send>
+              </AuiIf>
+              <AuiIf condition={(s) => s.thread.isRunning && s.composer.isEmpty}>
+                <ComposerPrimitive.Cancel asChild>
+                  <button
+                    type="button"
+                    aria-label="停止生成"
+                    className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-fg"
+                  >
+                    <SquareIcon className="size-3 fill-current" />
+                  </button>
+                </ComposerPrimitive.Cancel>
+              </AuiIf>
+            </div>
           </div>
         </div>
-      </div>
+      </ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
   );
 };

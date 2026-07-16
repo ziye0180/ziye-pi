@@ -2,14 +2,31 @@
  * 把浏览器侧 PiClient(HTTP/SSE,经 vite proxy 打到 bridge 的 /api/pi)
  * 接入 usePiRuntime。client 全应用生命周期稳定。
  */
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import {
+  AssistantRuntimeProvider,
+  CompositeAttachmentAdapter,
+  SimpleImageAttachmentAdapter,
+  SimpleTextAttachmentAdapter,
+} from "@assistant-ui/react";
 import { createPiHttpClient, usePiRuntime } from "@assistant-ui/react-pi";
 import { useMemo, type ReactNode } from "react";
 
 export function PiRuntimeProvider({ children }: { children: ReactNode }) {
   const client = useMemo(() => createPiHttpClient(), []);
+  // 附件:图片(data-URL 直达 pi 的 image content)+ 文本文件(并入 text)。
+  // pi 内容模型只收 text/image,其余类型 adapter add 时会抛错并提示。
+  const adapters = useMemo(
+    () => ({
+      attachments: new CompositeAttachmentAdapter([
+        new SimpleImageAttachmentAdapter(),
+        new SimpleTextAttachmentAdapter(),
+      ]),
+    }),
+    [],
+  );
   const runtime = usePiRuntime({
     client,
+    adapters,
     // fail fast:runtime 内部错误(初始加载/enqueue/resume 失败)不许无声,
     // 冒泡到 console;用户可见反馈由 LastErrorBanner 渲染 extras.lastError
     onError: (error) => {
