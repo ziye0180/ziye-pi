@@ -136,6 +136,24 @@ body {
   border: none;
   padding: 0;
 }
+/* shiki 高亮块:接在 CodeHeader 下方,上直角与 header 相连;
+   压掉 shiki 主题的内联底色,底色统一走 --surface */
+.aui-md .shiki-block pre {
+  background: var(--color-surface) !important;
+  border-radius: 0 0 12px 12px;
+  margin: 0;
+}
+.aui-md .shiki-block {
+  margin-bottom: 0.75em;
+}
+.aui-md .shiki-block + * {
+  margin-top: 0.75em;
+}
+/* KaTeX 块级公式横向可滚 */
+.aui-md .katex-display {
+  overflow-x: auto;
+  padding: 4px 0;
+}
 .aui-md table {
   border-collapse: collapse;
   font-size: 14px;

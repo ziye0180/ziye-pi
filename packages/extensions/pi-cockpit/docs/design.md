@@ -80,6 +80,14 @@
 - 运行中(status==="running")禁止切换:按钮与条目 disabled,--text-3
 - 点击面板外或选中后关闭
 
+## 富文本渲染(M3 W2)
+
+- 代码块:CodeHeader(--surface-2 底、radius 上圆角、px3 py1.5)= 语言名(12px 等宽 --text-3)+ 右侧复制按钮(hover --text,复制后 1.5s 显 ✓);代码体 shiki 暗色高亮,底色对齐 --surface,13px 等宽,横向滚动
+- 高亮主题:shiki 暗色系(如 github-dark-default),背景强制透明由容器给 --surface,避免主题底色与卡片打架
+- Mermaid:fence 渲染为居中 SVG 图,--surface 底 1px --border radius 12px 容器;流式未闭合时显示"图生成中…"占位(--text-3 13px);渲染失败显示错误一行 + 原文代码块(fail-fast 不白屏)
+- 数学:KaTeX 默认样式,行内与块级;正文同色
+- 流式:全部 markdown 元素走 memo 化组件表;defer 开启(低优先级解析)
+
 ## 工具卡内审批/中断区(M3 W1)
 
 - 触发:单工具执行期的 confirm(part.approval 待答)或 select/input/editor(part.interrupt)
