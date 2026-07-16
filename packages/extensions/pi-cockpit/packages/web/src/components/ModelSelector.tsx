@@ -5,27 +5,20 @@
  * (react-pi 已把当前 thread 绑好,调用只传业务参数)。
  */
 import { usePiRuntimeExtras } from "@assistant-ui/react-pi";
-import type { PiThinkingLevel } from "@assistant-ui/react-pi";
+import type { PiModelInfo } from "@assistant-ui/react-pi";
 import { CheckIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FC } from "react";
 
-type ModelInfo = {
-  provider: string;
-  modelId: string;
-  name?: string;
-  supportsThinking?: boolean;
-  availableThinkingLevels?: readonly PiThinkingLevel[];
-};
-
-/** 一次性拉取 bridge 的模型目录;失败冒泡到 console(fail fast,不静默兜底成空)。 */
-const useModelCatalog = (): ModelInfo[] => {
-  const [models, setModels] = useState<ModelInfo[]>([]);
+/** 一次性拉取 bridge 的模型目录;失败冒泡到 console(fail fast,不静默兜底成空)。
+ * 类型直接复用 react-pi 导出的 PiModelInfo,避免本地孪生类型漂移。 */
+const useModelCatalog = (): PiModelInfo[] => {
+  const [models, setModels] = useState<PiModelInfo[]>([]);
   useEffect(() => {
     let alive = true;
     fetch("/api/pi/models")
       .then((r) => {
         if (!r.ok) throw new Error(`GET /models ${r.status}`);
-        return r.json() as Promise<ModelInfo[]>;
+        return r.json() as Promise<PiModelInfo[]>;
       })
       .then((data) => {
         if (alive) setModels(data);

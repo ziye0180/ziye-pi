@@ -28,22 +28,36 @@ const HostUiCard: FC<{ request: PiHostUiRequest; respond: Respond }> = ({
   const [value, setValue] = useState(
     request.kind === "editor" ? (request.prefill ?? "") : "",
   );
+  const [error, setError] = useState<string | null>(null);
+
+  // 审批响应失败不静默(与 QueueCard 同款可见反馈);卡片本身由
+  // extension_ui_resolved 事件清除,失败时留在原地并提示重试。
+  const send = (response: Parameters<Respond>[0]) => {
+    setError(null);
+    void respond(response).catch((e: unknown) => {
+      console.error("host-ui 响应失败", e);
+      setError("响应失败,请重试");
+    });
+  };
 
   const dismiss = () =>
-    void respond(
+    send(
       request.kind === "confirm"
         ? responseForRequest(request, false)
         : { requestId: request.id, dismissed: true },
     );
 
   const submit = () =>
-    request.kind === "confirm"
-      ? void respond(responseForRequest(request, true))
-      : void respond(responseForRequest(request, value));
+    send(
+      request.kind === "confirm"
+        ? responseForRequest(request, true)
+        : responseForRequest(request, value),
+    );
 
   return (
     <div className="rounded-(--radius-card) border border-border bg-surface p-3 text-[13px]">
       <div className="text-[14px] font-medium text-text">{request.title}</div>
+      {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
 
       {request.kind === "confirm" ? (
         <p className="mt-1 text-text-2">{request.message}</p>
@@ -53,7 +67,7 @@ const HostUiCard: FC<{ request: PiHostUiRequest; respond: Respond }> = ({
             <button
               key={option}
               type="button"
-              onClick={() => void respond(responseForRequest(request, option))}
+              onClick={() => send(responseForRequest(request, option))}
               className="rounded-full border border-border bg-surface-2 px-3 py-1 text-text-2 transition-colors duration-200 hover:text-text"
             >
               {option}

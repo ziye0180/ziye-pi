@@ -1,6 +1,6 @@
 /**
  * react-pi 官方 wire 契约的 Hono 实现(SSOT: @assistant-ui/react-pi
- * src/client/httpClient.ts 头注释的 16 端点表,不得私改 shape)。
+ * src/client/httpClient.ts 头注释的 15 端点表,不得私改 shape)。
  *
  * 错误处理:fail fast —— 任何异常 500 + JSON {error},createPiHttpClient 会把
  * 文本原样冒泡到 UI;不吞错、不兜底。
