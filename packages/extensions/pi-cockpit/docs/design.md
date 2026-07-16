@@ -80,6 +80,15 @@
 - 运行中(status==="running")禁止切换:按钮与条目 disabled,--text-3
 - 点击面板外或选中后关闭
 
+## 工具卡内审批/中断区(M3 W1)
+
+- 触发:单工具执行期的 confirm(part.approval 待答)或 select/input/editor(part.interrupt)
+- 位置:工具卡内部底部,border-t --border 分隔;**卡此时强制展开**(有待答项不许折叠隐藏)
+- confirm:请求 title 13px --text + 右侧「拒绝」(ghost)/「批准」(白底黑字小按钮,px3 py1)
+- select:title + 选项横向 pill(同旁路审批卡);input/editor:同旁路卡输入控件的紧凑版
+- 跳过(dismiss):ghost 按钮,select/input/editor 均有
+- 已决(approved 有值/有 resolution):区域消失,状态点回归正常流转
+
 ## 审批卡(M2)
 
 - pi 的 human-in-the-loop:工具/扩展调 confirm/select/input/editor 时弹出,阻塞等响应
