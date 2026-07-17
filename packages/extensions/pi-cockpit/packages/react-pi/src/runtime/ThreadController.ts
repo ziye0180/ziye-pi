@@ -28,6 +28,7 @@ import {
   type PiInterruptAnswer,
 } from "./hostUi.js";
 import type {
+  PiBranchOption,
   PiClient,
   PiClientEvent,
   PiAgentMessage,
@@ -37,6 +38,57 @@ import type {
   PiThinkingLevel,
   PiThreadSnapshot,
 } from "../types.js";
+
+/** Prefix marking sibling-branch placeholder messages in the repository.
+ * A placeholder renders for one frame while switching; the entry id encoded
+ * after the prefix is what the runtime navigates to (see usePiRuntime's
+ * `unstable_onBranchChange`). */
+export const BRANCH_PLACEHOLDER_PREFIX = "pi-branch:";
+
+/** Build the message repository. Linear when the current path has no forks;
+ * otherwise `fromBranchableArray` with one placeholder user message per
+ * non-current sibling so assistant-ui's BranchPicker sees real siblings. */
+const buildBranchableRepository = (
+  projected: readonly ThreadMessageLike[],
+  branches: readonly PiBranchOption[],
+): ExportedMessageRepository => {
+  if (branches.length === 0) {
+    return ExportedMessageRepository.fromArray(projected);
+  }
+  const items = projected.map((message, index) => ({
+    message,
+    parentId: index > 0 ? (projected[index - 1]!.id ?? null) : null,
+  }));
+  const headId = projected.at(-1)?.id ?? null;
+  const users = projected.filter((m) => m.role === "user");
+  for (const option of branches) {
+    const anchor = users[users.length - 1 - option.userIndexFromEnd];
+    if (!anchor?.id) {
+      // Misalignment (e.g. compaction edge): omitting the picker is the safe
+      // degradation, but never a silent one.
+      console.warn(
+        "[react-pi] branch option misaligned with projection; skipping",
+        option,
+      );
+      continue;
+    }
+    const anchorId = anchor.id;
+    const anchorParentId =
+      items.find((item) => item.message.id === anchorId)?.parentId ?? null;
+    for (const sibling of option.siblings) {
+      if (sibling.isCurrent) continue;
+      items.push({
+        message: {
+          id: `${BRANCH_PLACEHOLDER_PREFIX}${sibling.entryId}`,
+          role: "user" as const,
+          content: [{ type: "text" as const, text: sibling.text }],
+        },
+        parentId: anchorParentId,
+      });
+    }
+  }
+  return ExportedMessageRepository.fromBranchableArray(items, { headId });
+};
 
 export type PiSendOptions = {
   /** Overrides the derived behavior. While the thread is running this is
@@ -68,6 +120,8 @@ export interface PiThreadControllerLike {
     userIndexFromEnd: number;
     message?: PiSendMessageInput;
   }): Promise<void>;
+  /** Switch the current path to a sibling branch (see PiClient). */
+  switchToBranch(entryId: string): Promise<void>;
   setModel(input: { provider: string; modelId: string }): Promise<void>;
   setThinkingLevel(level: PiThinkingLevel): Promise<void>;
   /** Answer a native tool-call approval (`confirm`). */
@@ -518,6 +572,15 @@ export class PiThreadController implements PiThreadControllerLike {
     }
   }
 
+  public async switchToBranch(entryId: string) {
+    try {
+      await this.client.switchToBranch(this.threadId, { entryId });
+    } catch (error) {
+      this.setState({ ...this.state, lastError: errorText(error) });
+      throw error;
+    }
+  }
+
   public async setModel(input: { provider: string; modelId: string }) {
     try {
       await this.client.setModel(this.threadId, input);
@@ -658,13 +721,22 @@ export class PiThreadController implements PiThreadControllerLike {
     );
   }
 
+  private lastBranchOptions: readonly PiBranchOption[] = [];
+
   private recomputeProjectedMessagesAndNotify() {
     const next = this.projectMessages();
-    if (next === this.projectedMessages) return;
+    const branches = this.state.branches;
+    // Empty -> empty never counts as a change even across fresh array
+    // references (snapshots build new arrays each time).
+    const branchesChanged =
+      branches !== this.lastBranchOptions &&
+      (branches.length > 0 || this.lastBranchOptions.length > 0);
+    if (next === this.projectedMessages && !branchesChanged) return;
     this.projectedMessages = next;
-    // `fromArray` chains messages linearly and keeps their stable `pi-msg:N`
-    // ids (its generated id is only a fallback for id-less messages).
-    this.messageRepository = ExportedMessageRepository.fromArray(next);
+    this.lastBranchOptions = branches;
+    // Linear chain keeps stable `pi-msg:N` ids; with forks the repository
+    // gains sibling placeholders so the BranchPicker lights up.
+    this.messageRepository = buildBranchableRepository(next, branches);
     this.notifyMessageListeners();
   }
 

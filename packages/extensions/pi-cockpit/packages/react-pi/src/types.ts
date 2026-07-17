@@ -467,6 +467,22 @@ export type PiAnyClientEvent =
 // Snapshot & client contract.
 // ---------------------------------------------------------------------------
 
+/** One sibling alternative at a branch point (a user-message fork in the
+ * session tree). `text` is the sibling's user text, used only for the brief
+ * placeholder render during branch switching. */
+export type PiBranchSibling = {
+  entryId: string;
+  text: string;
+  isCurrent: boolean;
+};
+
+/** A branch point on the current path: the N-th-from-last user message has
+ * sibling alternatives (created by edit/regenerate) in the session tree. */
+export type PiBranchOption = {
+  userIndexFromEnd: number;
+  siblings: readonly PiBranchSibling[];
+};
+
 export type PiThreadSnapshot = {
   metadata: PiThreadMetadata;
   messages: PiTranscriptMessage[];
@@ -476,6 +492,9 @@ export type PiThreadSnapshot = {
   readiness?: PiRuntimeReadiness;
   /** Last surfaced runtime/session error, if any. */
   lastError?: string;
+  /** Branch points on the current path (empty/omitted when the path has no
+   * sibling forks). */
+  branches?: readonly PiBranchOption[];
 };
 
 /** Session-level aggregate statistics (mirror of Pi's `SessionStats` subset;
@@ -543,6 +562,11 @@ export interface PiClient {
     threadId: string,
     input: { userIndexFromEnd: number; message?: PiSendMessageInput },
   ): Promise<void>;
+
+  /** Switch the current path to the branch under `entryId` (a sibling user
+   * message from a `PiBranchOption`). The leaf moves to that subtree's newest
+   * descendant; the rewritten transcript arrives via a snapshot event. */
+  switchToBranch(threadId: string, input: { entryId: string }): Promise<void>;
 
   /** Session-level aggregate stats (message counts, tokens, cost). */
   getSessionStats(threadId: string): Promise<PiSessionStats>;

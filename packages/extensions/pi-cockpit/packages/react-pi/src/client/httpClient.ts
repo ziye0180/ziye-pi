@@ -25,6 +25,7 @@
  *   DELETE /threads/:id             → 204
  *   POST   /threads/:id/host-ui     → 204                   (body: { response })
  *   POST   /threads/:id/rewind      → 204                   (body: { userIndexFromEnd, message? })
+ *   POST   /threads/:id/branch      → 204                   (body: { entryId })
  *   GET    /threads/:id/stats       → PiSessionStats
  *   POST   /threads/:id/compact     → 204                   (body: { customInstructions? })
  *   GET    /threads/:id/export/html → text/html (自包含文档)
@@ -206,6 +207,10 @@ export const createPiHttpClient = (
       await assertOk(await send(`${threadUrl(threadId)}/rewind`, "POST", input));
     },
 
+    switchToBranch: async (threadId, input) => {
+      await assertOk(await send(`${threadUrl(threadId)}/branch`, "POST", input));
+    },
+
     getSessionStats: async (threadId) =>
       readJson<PiSessionStats>(
         await send(`${threadUrl(threadId)}/stats`, "GET"),
@@ -272,6 +277,9 @@ export const createPiHttpClient = (
         }
         current.closeTimer = setTimeout(() => {
           const latest = streams.get(streamKey);
+          // Always clear the fired handle: a stale one would make future
+          // unsubscribes skip re-arming and leak the stream forever.
+          if (latest) latest.closeTimer = undefined;
           if (!latest || latest.listeners.size > 0) return;
           latest.close();
           streams.delete(streamKey);

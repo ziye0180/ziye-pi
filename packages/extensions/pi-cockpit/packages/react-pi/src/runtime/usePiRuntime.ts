@@ -27,6 +27,7 @@ import {
 import { useEffectEvent } from "use-effect-event";
 import {
   appendMessageParts,
+  BRANCH_PLACEHOLDER_PREFIX,
   buildPiSendInput,
   PiThreadController,
   type PiThreadControllerLike,
@@ -89,6 +90,7 @@ export const NOOP_CONTROLLER: PiThreadControllerLike = {
   cancel: async () => {},
   clearQueue: async () => ({ steering: [], followUp: [] }),
   rewindToUserMessage: async () => {},
+  switchToBranch: async () => {},
   setModel: async () => {},
   setThinkingLevel: async () => {},
   respondToToolApproval: async () => {},
@@ -252,11 +254,13 @@ const usePiThreadStore = (
   // run server-side inside `createThread`. The supervisor already holds a live
   // record for a running thread, so subscribing attaches to it; idle threads
   // never connect and the cold-read path stays cheap.
+  // Keep the event stream open for the whole mount, not just while running:
+  // supervisor-side broadcasts (rewind/branch-switch snapshots, compaction
+  // errors) happen while idle and would be lost on a lazy connection.
   useEffect(() => {
     if (controller === NOOP_CONTROLLER) return;
-    if (!isRunning) return;
     return controller.connect();
-  }, [controller, isRunning]);
+  }, [controller]);
 
   const extras = useMemo<PiRuntimeExtrasInternal>(
     () => buildExtras(controller, state),
@@ -346,6 +350,18 @@ const usePiThreadStore = (
           onError?.(error);
           throw error;
         }
+      },
+      // Branch switching: assistant-ui flips its local repository first and
+      // pushes the (placeholder) linear path here. The real transcript comes
+      // from Pi via the snapshot that follows navigateTree, so the pushed
+      // content is intentionally not consumed.
+      setMessages: () => {},
+      unstable_onBranchChange: ({ headId }) => {
+        if (!headId?.startsWith(BRANCH_PLACEHOLDER_PREFIX)) return;
+        const entryId = headId.slice(BRANCH_PLACEHOLDER_PREFIX.length);
+        void controller.switchToBranch(entryId).catch((error: unknown) => {
+          onError?.(error);
+        });
       },
       // Edit-and-retry: sourceId is the edited user message's own id. Pi has
       // no in-place edit (append-only sessions) — rewind + send new text.

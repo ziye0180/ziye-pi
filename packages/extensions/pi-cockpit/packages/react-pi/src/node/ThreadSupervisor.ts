@@ -54,10 +54,30 @@ import type {
   PiThreadStatus,
   PiHostUiRequest,
   PiHostUiResponse,
+  PiBranchOption,
   PiRuntimeReadiness,
   PiSendMessageInput,
   PiSessionStats,
 } from "../types.js";
+
+/** Structural view of Pi's SessionTreeNode — enough to walk the forest
+ * without importing the SDK's exact type. */
+type SessionTreeNodeLike = {
+  entry: { id: string };
+  children: readonly SessionTreeNodeLike[];
+};
+
+const findTreeNode = (
+  nodes: readonly SessionTreeNodeLike[],
+  id: string,
+): SessionTreeNodeLike | undefined => {
+  for (const node of nodes) {
+    if (node.entry.id === id) return node;
+    const hit = findTreeNode(node.children, id);
+    if (hit) return hit;
+  }
+  return undefined;
+};
 
 /** The `model` shape `createAgentSession` accepts (a Pi `Model`), derived from
  * the SDK so the supervisor stays the only file that names it. The host resolves
@@ -376,6 +396,71 @@ export class PiThreadSupervisor {
     }
     this.emit(record, { type: "snapshot", snapshot: this.snapshotOf(record) });
     await this.send(record, message);
+  }
+
+  /** Branch points on the current path: user messages whose tree parent has
+   * other user-message children (forks created by edit/regenerate). Sibling
+   * texts come from `getUserMessagesForForking` (Pi's own extraction) so the
+   * placeholder render matches what a rewind would restore. */
+  private branchOptionsOf(record: ThreadRecord): PiBranchOption[] {
+    const sessionManager = record.session.sessionManager;
+    const branch = sessionManager.getBranch();
+    const userEntries = branch.filter(
+      (entry) => entry.type === "message" && entry.message.role === "user",
+    );
+    if (userEntries.length === 0) return [];
+    const textByEntryId = new Map(
+      record.session
+        .getUserMessagesForForking()
+        .map((m) => [m.entryId, m.text]),
+    );
+    const options: PiBranchOption[] = [];
+    userEntries.forEach((entry, index) => {
+      // Root-level entries (parentId null) have no getChildren channel —
+      // their siblings are the forest's top-level nodes.
+      const candidates =
+        entry.parentId === null
+          ? sessionManager.getTree().map((node) => node.entry)
+          : sessionManager.getChildren(entry.parentId);
+      const siblings = candidates.filter(
+        (candidate) =>
+          candidate.type === "message" && candidate.message.role === "user",
+      );
+      if (siblings.length < 2) return;
+      options.push({
+        userIndexFromEnd: userEntries.length - 1 - index,
+        siblings: siblings.map((sibling) => ({
+          entryId: sibling.id,
+          text: textByEntryId.get(sibling.id) ?? "",
+          isCurrent: sibling.id === entry.id,
+        })),
+      });
+    });
+    return options;
+  }
+
+  /** Switch the current path to the subtree under a sibling user entry. The
+   * leaf lands on the subtree's newest descendant (children are
+   * timestamp-ascending, so "last child" at each level is the newest path).
+   * When that descendant is itself a user message, navigateTree parks the
+   * leaf on its parent and returns the text as editorText — the text stays in
+   * the tree, so dropping it here loses nothing (composer backfill is a
+   * possible later upgrade). */
+  async switchToBranch(
+    threadId: string,
+    input: { entryId: string },
+  ): Promise<void> {
+    const record = await this.ensureOpen(threadId);
+    const tree = record.session.sessionManager.getTree();
+    const root = findTreeNode(tree, input.entryId);
+    if (!root) throw new Error(`Unknown session entry: ${input.entryId}`);
+    let node: SessionTreeNodeLike = root;
+    while (node.children.length > 0) {
+      node = node.children[node.children.length - 1]!;
+    }
+    const result = await record.session.navigateTree(node.entry.id);
+    if (result.cancelled) throw new Error("Pi cancelled the tree navigation");
+    this.emit(record, { type: "snapshot", snapshot: this.snapshotOf(record) });
   }
 
   async getSessionStats(threadId: string): Promise<PiSessionStats> {
@@ -779,6 +864,7 @@ export class PiThreadSupervisor {
   }
 
   private snapshotOf(record: ThreadRecord): PiThreadSnapshot {
+    const branches = this.branchOptionsOf(record);
     return {
       metadata: this.metadataOf(record),
       messages: toPiMessages(record.session.messages),
@@ -787,6 +873,7 @@ export class PiThreadSupervisor {
         ? { hostUiRequests: [...record.hostUiRequests] }
         : {}),
       ...(record.lastError ? { lastError: record.lastError } : {}),
+      ...(branches.length ? { branches } : {}),
     };
   }
 

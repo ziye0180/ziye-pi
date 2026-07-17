@@ -5,6 +5,7 @@
 import {
   ActionBarPrimitive,
   AuiIf,
+  BranchPickerPrimitive,
   ComposerPrimitive,
   ErrorPrimitive,
   groupPartByType,
@@ -21,6 +22,8 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   CopyIcon,
   DownloadIcon,
   PencilIcon,
@@ -173,6 +176,37 @@ const UserActionBar: FC = () => (
   </ActionBarPrimitive.Root>
 );
 
+/** 分支切换器(design.md A1 王牌链):仅当该 user 消息在会话树上有兄弟
+ * 分支(edit/重新生成产生)时出现;切换经 pi navigateTree 真实换路径。
+ * 显隐用 AuiIf 控制:0.14.26 的 hideWhenSingleBranch 会把多分支也一并藏掉。 */
+const UserBranchPicker: FC = () => (
+  <AuiIf condition={(s) => s.message.branchCount > 1}>
+    <BranchPickerPrimitive.Root className="flex items-center gap-1 text-[12px] text-text-3">
+    <BranchPickerPrimitive.Previous asChild>
+      <button
+        type="button"
+        aria-label="上一个分支"
+        className="rounded-md p-0.5 transition-colors duration-200 hover:text-text disabled:opacity-40"
+      >
+        <ChevronLeftIcon className="size-3.5" />
+      </button>
+    </BranchPickerPrimitive.Previous>
+    <span>
+      <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
+    </span>
+    <BranchPickerPrimitive.Next asChild>
+      <button
+        type="button"
+        aria-label="下一个分支"
+        className="rounded-md p-0.5 transition-colors duration-200 hover:text-text disabled:opacity-40"
+      >
+        <ChevronRightIcon className="size-3.5" />
+      </button>
+    </BranchPickerPrimitive.Next>
+    </BranchPickerPrimitive.Root>
+  </AuiIf>
+);
+
 const UserMessage: FC = () => (
   <MessagePrimitive.Root
     data-role="user"
@@ -186,7 +220,10 @@ const UserMessage: FC = () => (
       <div className="max-w-[85%] rounded-(--radius-bubble) bg-surface-2 px-4 py-2.5 wrap-break-word empty:hidden">
         <MessagePrimitive.Parts />
       </div>
-      <UserActionBar />
+      <div className="flex items-center gap-2">
+        <UserBranchPicker />
+        <UserActionBar />
+      </div>
     </AuiIf>
   </MessagePrimitive.Root>
 );

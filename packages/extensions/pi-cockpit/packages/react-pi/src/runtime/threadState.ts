@@ -18,6 +18,7 @@
 import type {
   PiAgentMessage,
   PiAssistantMessage,
+  PiBranchOption,
   PiClientEvent,
   PiContextUsage,
   PiHostUiRequest,
@@ -60,6 +61,8 @@ export interface PiThreadState {
   hostUiRequests: readonly PiHostUiRequest[];
   readiness: PiRuntimeReadiness | undefined;
   lastError: string | undefined;
+  /** Branch points on the current path (sibling user-message forks). */
+  branches: readonly PiBranchOption[];
   loadState: PiLoadState;
   /** Monotonic seq of the last applied event (for ordering/dedup). */
   lastSeq: number;
@@ -84,6 +87,7 @@ export const createPiThreadState = (threadId: string): PiThreadState => ({
   hostUiRequests: [],
   readiness: undefined,
   lastError: undefined,
+  branches: [],
   loadState: "pending",
   lastSeq: 0,
 });
@@ -118,6 +122,7 @@ const applySnapshot = (
     streamingMessageIndex: undefined,
     toolExecutions: {},
     runStatus,
+    branches: snapshot.branches ?? [],
     // A missing `queuedMessages` means an empty queue (snapshots omit the
     // field when there is nothing queued, and cold threads have no queue at
     // all) — keeping the prior queue here would let items drained while the

@@ -64,6 +64,8 @@ export const createPiNodeClient = (
     renameThread: (threadId, title) => supervisor.renameThread(threadId, title),
     rewindToUserMessage: (threadId, input) =>
       supervisor.rewindToUserMessage(threadId, input),
+    switchToBranch: (threadId, input) =>
+      supervisor.switchToBranch(threadId, input),
     getSessionStats: (threadId) => supervisor.getSessionStats(threadId),
     compact: (threadId, customInstructions) =>
       supervisor.compact(threadId, customInstructions),
