@@ -2,7 +2,7 @@
 
 作者: ziye
 
-> update_time: 2026-07-17 07:30 CST
+> update_time: 2026-07-17 13:30 CST
 > 本文是 pi-cockpit 对话能力对接的 SSOT:哪些已通、哪些可接、卡在哪层、按什么顺序推进。三路源码级调研(pi SDK / react-pi 适配层 / assistant-ui 原语)交叉产出,全部判定带源码行号证据。react-pi 已 vendor 进本 workspace(`packages/react-pi`,0.0.6-ziye.1),适配层从此是我们自己的代码。
 
 ## 分层判定
@@ -35,7 +35,7 @@ send-message(text+image)/ SSE 流式 / cancel / steer+followUp 入队 / tool-app
 | 朗读 + 点赞点踩 | 通道全在;**ziye 已明确决策不要此功能(2026-07-16 删除)** | 不做,仅记录可行性 |
 | 输入增强(输入历史/实时补全/@提及) | `unstable_useComposerInputHistory` / `LiveCompletionAdapter` / `MentionAdapter` 均导出未用,纯前端 | Composer 挂 hook;注意 unstable_ 漂移风险 |
 | quote / 选中引用回复 | `SelectionToolbarPrimitive` + `ComposerPrimitive.Quote` 全齐;quote 是否进 sendMessage 文本未实测 | Thread 挂 SelectionToolbar;若 quote 未入 prompt 再补 `buildPiSendInput` |
-| 归档列表可见 | `listThreads` 支持 `includeArchived`,cockpit 没传,刷新后归档不可见 | 调用处传参;持久化是另一条(见下) |
+| ~~归档列表可见~~ | **已完成(2026-07-17 TUI 平权批)**:includeArchived 透传,侧栏"已归档"区刷新后可见 | - |
 | 多工作区 | supervisor 已按 threadId 多路复用 + per-call workspacePath;cockpit 固定进程 cwd | 传 workspacePath + 自绘切换器;顺修 `node/client.ts:57` models 忽略 workspacePath 瑕疵 |
 
 ### needs-adapter-work:改 vendored react-pi(12 项,从轻到重)
@@ -45,11 +45,11 @@ send-message(text+image)/ SSE 流式 / cancel / steer+followUp 入队 / tool-app
 | 1 | ~~session-stats 面板~~ | **已完成(2026-07-17 热身批)**:PiClient.getSessionStats 四层贯通,web SessionCost 显示会话累计成本 | - | - |
 | 2 | ~~原生导出 html~~ | **已完成(2026-07-17 热身批)**:PiClient.exportHtml,/export 下载 pi 原生自包含 HTML(jsonl 未做,session 文件本身即 jsonl) | - | - |
 | 3 | ~~手动 /compact~~ | **已完成(2026-07-17 热身批)**:PiClient.compact + /compact 命令;业务拒绝经 error 事件上屏 LastErrorBanner | - | - |
-| 4 | 侧栏按最近活跃排序 | SessionInfo 含时间 | `mapThreadMetadata` 没映射 lastMessageAt | 字段映射 |
+| 4 | ~~侧栏按最近活跃排序~~ | **已完成(2026-07-17 TUI 平权批)**:supervisor listThreads 按 modified 倒序 | - | - |
 | 5 | ~~archive 持久化~~ | **已完成(2026-07-17 热身批)**:归档集落盘 `~/.pi/agent/cockpit-archive.json`,启动回读 | - | - |
-| 6 | slash 面板接 pi 命令源 | RPC `get_commands`(extension+prompt+skills 三源) | PiClient 无 getCommands;现仅 3 个本地命令 | 单端点 + 面板合并 |
+| 6 | ~~slash 面板接 pi 命令源~~ | **已完成(2026-07-17 TUI 平权批)**:PiClient.getCommands 三源合并进弹层,选中即发送(pi prompt 原生解析);需 ctx.ui.custom 的命令(如 /mcp)报错不支持但不炸进程 | - | - |
 | 7 | AI 自动会话标题 | `set_session_name` 有;**pi 是否自动命名两份调研冲突,待核实** | `generateTitle` 是空流 stub | 先核实再定方案 |
-| 8 | bash 执行(! 入口) | `executeBash(command,onChunk)` + abortBash | 历史可投影展示,无发起入口 | 端点 + SSE chunk + composer 拦截 |
+| 8 | ~~bash 执行(! 入口)~~ | **已完成(2026-07-17 TUI 平权批)**:`!cmd` / `!!cmd`(excludeFromContext)拦截在 controller.sendMessage(queue adapter 使 onNew 不触发),pi 原生执行 + 终端卡片实时上屏,零 LLM;流式 chunk 未做(bash 通常秒回) | - | - |
 | 9 | extension UI notify/custom | 双向协议完整 | notify 无 sink 被丢;custom() 直接 reject | supervisor 传 sink → toast |
 | 10 | ~~regenerate / reload~~ | **已完成(2026-07-17 A1)**:`rewindToUserMessage` 四层贯通(倒序 user 序号对齐,compaction 安全),assistant 消息挂重新生成按钮 | - | - |
 | 11 | ~~编辑历史消息重跑~~ | **已完成(2026-07-17 A1)**:onEdit + 原位 EditComposer,rewind + 发新文本,旧分支保留 | - | - |
