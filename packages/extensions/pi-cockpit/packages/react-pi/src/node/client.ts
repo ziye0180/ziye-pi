@@ -66,6 +66,8 @@ export const createPiNodeClient = (
       supervisor.rewindToUserMessage(threadId, input),
     switchToBranch: (threadId, input) =>
       supervisor.switchToBranch(threadId, input),
+    getCommands: (threadId) => supervisor.getCommands(threadId),
+    executeBash: (threadId, input) => supervisor.executeBash(threadId, input),
     getSessionStats: (threadId) => supervisor.getSessionStats(threadId),
     compact: (threadId, customInstructions) =>
       supervisor.compact(threadId, customInstructions),

@@ -141,6 +141,14 @@ api.post("/threads/:id/branch", async (c) => {
   return noContent();
 });
 
+api.get("/threads/:id/commands", async (c) => {
+  return c.json(await piClient.getCommands(c.req.param("id")));
+});
+
+api.post("/threads/:id/bash", async (c) => {
+  return c.json(await piClient.executeBash(c.req.param("id"), await c.req.json()));
+});
+
 api.get("/threads/:id/stats", async (c) => {
   return c.json(await piClient.getSessionStats(c.req.param("id")));
 });

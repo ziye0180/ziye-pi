@@ -211,6 +211,11 @@ export const reducePiThreadState = (
         ...state,
         runStatus: "running",
         lastError: undefined,
+        // Branch anchors are tail-relative; new messages shift the tail and
+        // would mis-anchor stale options. Drop them until the next snapshot
+        // recomputes (picker briefly disappears during a run — correct over
+        // wrong).
+        branches: [],
         metadata: withMetadataStatus(state.metadata, "running"),
       });
 
@@ -366,6 +371,9 @@ export const reducePiThreadState = (
 
     case "extension_ui_resolved":
       return stamped(removeHostUiRequest(state, event.requestId));
+
+    case "branches_update":
+      return stamped({ ...state, branches: event.branches });
 
     case "error":
       return stamped({

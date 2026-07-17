@@ -91,6 +91,7 @@ export const NOOP_CONTROLLER: PiThreadControllerLike = {
   clearQueue: async () => ({ steering: [], followUp: [] }),
   rewindToUserMessage: async () => {},
   switchToBranch: async () => {},
+  executeBash: async () => {},
   setModel: async () => {},
   setThinkingLevel: async () => {},
   respondToToolApproval: async () => {},

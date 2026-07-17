@@ -39,6 +39,18 @@ import type {
   PiThreadSnapshot,
 } from "../types.js";
 
+/** Pi TUI parity: `!cmd` runs bash in the workspace, `!!cmd` additionally
+ * excludes the output from the LLM context. Not a bash input otherwise. */
+const parseBangCommand = (
+  text: string,
+): { command: string; excludeFromContext: boolean } | undefined => {
+  if (!text.startsWith("!")) return undefined;
+  const excludeFromContext = text.startsWith("!!");
+  const command = text.slice(excludeFromContext ? 2 : 1).trim();
+  if (!command) return undefined;
+  return { command, excludeFromContext };
+};
+
 /** Prefix marking sibling-branch placeholder messages in the repository.
  * A placeholder renders for one frame while switching; the entry id encoded
  * after the prefix is what the runtime navigates to (see usePiRuntime's
@@ -122,6 +134,11 @@ export interface PiThreadControllerLike {
   }): Promise<void>;
   /** Switch the current path to a sibling branch (see PiClient). */
   switchToBranch(entryId: string): Promise<void>;
+  /** Run bash in the session workspace (see PiClient). */
+  executeBash(input: {
+    command: string;
+    excludeFromContext?: boolean;
+  }): Promise<void>;
   setModel(input: { provider: string; modelId: string }): Promise<void>;
   setThinkingLevel(level: PiThinkingLevel): Promise<void>;
   /** Answer a native tool-call approval (`confirm`). */
@@ -159,6 +176,9 @@ const MESSAGE_DIRTY_EVENT_TYPES: ReadonlySet<string> = new Set([
   "tool_execution_end",
   "extension_ui_request",
   "extension_ui_resolved",
+  // Branch anchors changed -> the repository's sibling placeholders must be
+  // rebuilt even though the projected messages themselves are unchanged.
+  "branches_update",
 ]);
 
 const MESSAGE_FRAME_COALESCED_EVENT_TYPES: ReadonlySet<string> = new Set([
@@ -466,6 +486,15 @@ export class PiThreadController implements PiThreadControllerLike {
     const input = buildPiSendInput(message, behavior);
     this.ensureEventSubscription({ includeSnapshot: false });
 
+    // TUI `!` parity, intercepted here (not onNew) because a queue adapter
+    // routes every normal send through enqueue -> sendMessage. Text-only
+    // bang input while idle runs bash instead of prompting the LLM;
+    // attachments or a mid-run send take the normal path.
+    if (!isQueuedSend && (input.attachments?.length ?? 0) === 0) {
+      const bang = parseBangCommand(input.content);
+      if (bang) return this.executeBash(bang);
+    }
+
     if (isQueuedSend) return this.sendQueued(input, behavior ?? "followUp");
 
     const optimistic = optimisticUserMessageFromInput(input);
@@ -575,6 +604,20 @@ export class PiThreadController implements PiThreadControllerLike {
   public async switchToBranch(entryId: string) {
     try {
       await this.client.switchToBranch(this.threadId, { entryId });
+    } catch (error) {
+      this.setState({ ...this.state, lastError: errorText(error) });
+      throw error;
+    }
+  }
+
+  /** Result rendering rides the snapshot Pi broadcasts after recording the
+   * execution — the returned PiBashResult is intentionally dropped here. */
+  public async executeBash(input: {
+    command: string;
+    excludeFromContext?: boolean;
+  }) {
+    try {
+      await this.client.executeBash(this.threadId, input);
     } catch (error) {
       this.setState({ ...this.state, lastError: errorText(error) });
       throw error;

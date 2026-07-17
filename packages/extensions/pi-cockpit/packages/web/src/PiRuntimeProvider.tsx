@@ -46,6 +46,8 @@ export function PiRuntimeProvider({ children }: { children: ReactNode }) {
   const runtime = usePiRuntime({
     client,
     adapters,
+    // 归档会话进列表(带 archived 标记),侧栏归档区刷新后仍可见
+    includeArchived: true,
     ...(initialThreadId ? { initialThreadId } : {}),
     onThreadIdChange: writeThreadIdToUrl,
     // fail fast:runtime 内部错误(初始加载/enqueue/resume 失败)不许无声,

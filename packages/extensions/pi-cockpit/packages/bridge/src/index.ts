@@ -10,6 +10,13 @@ import { api } from "./routes.js";
 import { HOST, PORT } from "./env.js";
 import { startupSummary } from "./pi-client.js";
 
+// 进程级边界:第三方 pi 扩展的异步逃逸(如 pi-mcp-adapter 对 ctx.ui.custom()
+// 的 rejection 不 catch)不允许炸掉承载全部会话的常驻 bridge。错误结构化
+// 记日志后继续运行 —— 这是服务边界的集中处理,不是业务层兜底。
+process.on("unhandledRejection", (reason) => {
+  console.error("[pi-cockpit bridge] unhandled rejection:", reason);
+});
+
 const app = new Hono();
 app.route("/api/pi", api);
 app.get("/healthz", (c) => c.json({ ok: true }));

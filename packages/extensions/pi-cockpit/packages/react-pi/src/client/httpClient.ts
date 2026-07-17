@@ -26,6 +26,8 @@
  *   POST   /threads/:id/host-ui     → 204                   (body: { response })
  *   POST   /threads/:id/rewind      → 204                   (body: { userIndexFromEnd, message? })
  *   POST   /threads/:id/branch      → 204                   (body: { entryId })
+ *   GET    /threads/:id/commands    → PiSlashCommand[]
+ *   POST   /threads/:id/bash        → PiBashResult          (body: { command, excludeFromContext? })
  *   GET    /threads/:id/stats       → PiSessionStats
  *   POST   /threads/:id/compact     → 204                   (body: { customInstructions? })
  *   GET    /threads/:id/export/html → text/html (自包含文档)
@@ -33,12 +35,14 @@
  */
 import { openPiEventStream } from "./eventSource.js";
 import type {
+  PiBashResult,
   PiClient,
   PiClientEvent,
   PiHostUiResponse,
   PiModelInfo,
   PiSendMessageInput,
   PiSessionStats,
+  PiSlashCommand,
   PiThinkingLevel,
   PiThreadMetadata,
   PiThreadSnapshot,
@@ -210,6 +214,16 @@ export const createPiHttpClient = (
     switchToBranch: async (threadId, input) => {
       await assertOk(await send(`${threadUrl(threadId)}/branch`, "POST", input));
     },
+
+    getCommands: async (threadId) =>
+      readJson<PiSlashCommand[]>(
+        await send(`${threadUrl(threadId)}/commands`, "GET"),
+      ),
+
+    executeBash: async (threadId, input) =>
+      readJson<PiBashResult>(
+        await send(`${threadUrl(threadId)}/bash`, "POST", input),
+      ),
 
     getSessionStats: async (threadId) =>
       readJson<PiSessionStats>(

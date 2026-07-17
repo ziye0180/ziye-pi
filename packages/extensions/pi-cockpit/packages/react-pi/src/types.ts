@@ -436,6 +436,7 @@ export type PiClientEventBody =
   | { type: "context_usage"; contextUsage: PiContextUsage }
   | { type: "extension_ui_request"; request: PiHostUiRequest }
   | { type: "extension_ui_resolved"; requestId: string }
+  | { type: "branches_update"; branches: readonly PiBranchOption[] }
   | { type: "error"; error: string };
 
 /**
@@ -495,6 +496,24 @@ export type PiThreadSnapshot = {
   /** Branch points on the current path (empty/omitted when the path has no
    * sibling forks). */
   branches?: readonly PiBranchOption[];
+};
+
+/** A slash command Pi can execute from a prompt: extension commands,
+ * file-based prompt templates, and skills (invoked as `/skill:name`). */
+export type PiSlashCommand = {
+  name: string;
+  description?: string;
+  source: "extension" | "prompt" | "skill";
+};
+
+/** Result of a host-side bash execution (mirror of Pi's `BashResult`). */
+export type PiBashResult = {
+  /** Combined stdout + stderr (sanitized, possibly truncated). */
+  output: string;
+  /** Undefined when the command was killed/cancelled. */
+  exitCode?: number;
+  cancelled: boolean;
+  truncated: boolean;
 };
 
 /** Session-level aggregate statistics (mirror of Pi's `SessionStats` subset;
@@ -567,6 +586,18 @@ export interface PiClient {
    * message from a `PiBranchOption`). The leaf moves to that subtree's newest
    * descendant; the rewritten transcript arrives via a snapshot event. */
   switchToBranch(threadId: string, input: { entryId: string }): Promise<void>;
+
+  /** Slash commands the session can execute from a prompt (extension +
+   * prompt-template + skill sources; Pi parses `/name args` in `prompt()`). */
+  getCommands(threadId: string): Promise<PiSlashCommand[]>;
+
+  /** Run a bash command in the session workspace (TUI `!` parity). The result
+   * is recorded into the session by Pi itself; the refreshed transcript
+   * arrives via a snapshot event. `excludeFromContext` mirrors `!!`. */
+  executeBash(
+    threadId: string,
+    input: { command: string; excludeFromContext?: boolean },
+  ): Promise<PiBashResult>;
 
   /** Session-level aggregate stats (message counts, tokens, cost). */
   getSessionStats(threadId: string): Promise<PiSessionStats>;

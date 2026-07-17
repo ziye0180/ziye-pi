@@ -54,10 +54,12 @@ import type {
   PiThreadStatus,
   PiHostUiRequest,
   PiHostUiResponse,
+  PiBashResult,
   PiBranchOption,
   PiRuntimeReadiness,
   PiSendMessageInput,
   PiSessionStats,
+  PiSlashCommand,
 } from "../types.js";
 
 /** Structural view of Pi's SessionTreeNode — enough to walk the forest
@@ -193,7 +195,10 @@ export class PiThreadSupervisor {
     includeArchived?: boolean;
   }): Promise<PiThreadMetadata[]> {
     const cwd = input?.workspacePath ?? this.workspacePath;
-    const infos = await this.listSessionInfos(cwd);
+    // Most-recently-active first: the sidebar consumes catalog order as-is.
+    const infos = [...(await this.listSessionInfos(cwd))].sort(
+      (a, b) => b.modified.getTime() - a.modified.getTime(),
+    );
     return infos
       .filter(
         (info) =>
@@ -461,6 +466,58 @@ export class PiThreadSupervisor {
     const result = await record.session.navigateTree(node.entry.id);
     if (result.cancelled) throw new Error("Pi cancelled the tree navigation");
     this.emit(record, { type: "snapshot", snapshot: this.snapshotOf(record) });
+  }
+
+  /** Slash commands from all three Pi sources (extension commands, prompt
+   * templates, skills) — same composition as Pi's RPC `get_commands`. */
+  async getCommands(threadId: string): Promise<PiSlashCommand[]> {
+    const record = await this.ensureOpen(threadId);
+    const session = record.session;
+    const commands: PiSlashCommand[] = [];
+    for (const command of session.extensionRunner.getRegisteredCommands()) {
+      commands.push({
+        name: command.invocationName,
+        ...(command.description ? { description: command.description } : {}),
+        source: "extension",
+      });
+    }
+    for (const template of session.promptTemplates) {
+      commands.push({
+        name: template.name,
+        ...(template.description ? { description: template.description } : {}),
+        source: "prompt",
+      });
+    }
+    for (const skill of session.resourceLoader.getSkills().skills) {
+      commands.push({
+        name: `skill:${skill.name}`,
+        ...(skill.description ? { description: skill.description } : {}),
+        source: "skill",
+      });
+    }
+    return commands;
+  }
+
+  /** Run bash in the session workspace. Pi records the result into the
+   * session itself ("Adds result to agent context and session"), so a
+   * snapshot broadcast is enough to surface it in transcripts. */
+  async executeBash(
+    threadId: string,
+    input: { command: string; excludeFromContext?: boolean },
+  ): Promise<PiBashResult> {
+    const record = await this.ensureOpen(threadId);
+    const result = await record.session.executeBash(
+      input.command,
+      undefined,
+      input.excludeFromContext ? { excludeFromContext: true } : undefined,
+    );
+    this.emit(record, { type: "snapshot", snapshot: this.snapshotOf(record) });
+    return {
+      output: result.output,
+      ...(result.exitCode !== undefined ? { exitCode: result.exitCode } : {}),
+      cancelled: result.cancelled,
+      truncated: result.truncated,
+    };
   }
 
   async getSessionStats(threadId: string): Promise<PiSessionStats> {
@@ -765,6 +822,12 @@ export class PiThreadSupervisor {
         record.lastError = message;
         this.emit(record, { type: "error", error: message });
       }
+      // Branch anchors are tail-relative and the run just moved the tail:
+      // the reducer dropped them at agent_start, re-derive them now.
+      this.emit(record, {
+        type: "branches_update",
+        branches: this.branchOptionsOf(record),
+      });
     }
   }
 
