@@ -341,6 +341,43 @@ export class PiThreadSupervisor {
     if (workspacePath) this.invalidateCatalog(workspacePath);
   }
 
+  /** Rewind the current branch to just before its N-th-from-last user message
+   * and send again (regenerate when `message` is omitted). Alignment with the
+   * projected transcript is tail-relative: compaction truncates the head, so
+   * reverse indices stay stable while forward ones drift. `navigateTree`
+   * emits no message events, so the rewound snapshot is pushed explicitly
+   * before the new run starts streaming. */
+  async rewindToUserMessage(
+    threadId: string,
+    input: { userIndexFromEnd: number; message?: PiSendMessageInput },
+  ): Promise<void> {
+    const record = await this.ensureOpen(threadId);
+    const branch = record.session.sessionManager.getBranch();
+    const userEntries = branch.filter(
+      (entry) => entry.type === "message" && entry.message.role === "user",
+    );
+    const target = userEntries[userEntries.length - 1 - input.userIndexFromEnd];
+    if (!target) {
+      throw new Error(
+        `No user message at reverse index ${input.userIndexFromEnd} on the current branch (${userEntries.length} user messages)`,
+      );
+    }
+    const result = await record.session.navigateTree(target.id);
+    if (result.cancelled) throw new Error("Pi cancelled the tree navigation");
+    const message =
+      input.message ??
+      (result.editorText !== undefined && result.editorText !== ""
+        ? { content: result.editorText }
+        : undefined);
+    if (!message) {
+      throw new Error(
+        "navigateTree returned no editor text to resend for regenerate",
+      );
+    }
+    this.emit(record, { type: "snapshot", snapshot: this.snapshotOf(record) });
+    await this.send(record, message);
+  }
+
   async getSessionStats(threadId: string): Promise<PiSessionStats> {
     const record = await this.ensureOpen(threadId);
     const stats = record.session.getSessionStats();

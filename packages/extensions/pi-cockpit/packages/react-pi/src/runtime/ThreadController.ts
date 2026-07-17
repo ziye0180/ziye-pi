@@ -63,6 +63,11 @@ export interface PiThreadControllerLike {
   /** Clear Pi's server-side queue; resolves with the cleared text so the UI
    * can restore it to the composer. */
   clearQueue(): Promise<{ steering: string[]; followUp: string[] }>;
+  /** Rewind to the N-th-from-last user message and resend (see PiClient). */
+  rewindToUserMessage(input: {
+    userIndexFromEnd: number;
+    message?: PiSendMessageInput;
+  }): Promise<void>;
   setModel(input: { provider: string; modelId: string }): Promise<void>;
   setThinkingLevel(level: PiThinkingLevel): Promise<void>;
   /** Answer a native tool-call approval (`confirm`). */
@@ -495,6 +500,18 @@ export class PiThreadController implements PiThreadControllerLike {
   public async cancel() {
     try {
       await this.client.cancelRun(this.threadId);
+    } catch (error) {
+      this.setState({ ...this.state, lastError: errorText(error) });
+      throw error;
+    }
+  }
+
+  public async rewindToUserMessage(input: {
+    userIndexFromEnd: number;
+    message?: PiSendMessageInput;
+  }) {
+    try {
+      await this.client.rewindToUserMessage(this.threadId, input);
     } catch (error) {
       this.setState({ ...this.state, lastError: errorText(error) });
       throw error;

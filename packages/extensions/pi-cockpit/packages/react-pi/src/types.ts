@@ -532,6 +532,18 @@ export interface PiClient {
   unarchiveThread(threadId: string): Promise<void>;
   deleteThread(threadId: string): Promise<void>;
 
+  /** Rewind the current branch to just before one of its user messages and
+   * send again — the shared primitive behind regenerate (reload) and
+   * edit-and-retry. `userIndexFromEnd` counts user messages from the branch
+   * tail (0 = most recent); tail-relative counting stays stable under
+   * compaction, which truncates the transcript head. Omitting `message`
+   * resends the original user text (regenerate). The old branch is kept
+   * (Pi sessions are append-only trees). */
+  rewindToUserMessage(
+    threadId: string,
+    input: { userIndexFromEnd: number; message?: PiSendMessageInput },
+  ): Promise<void>;
+
   /** Session-level aggregate stats (message counts, tokens, cost). */
   getSessionStats(threadId: string): Promise<PiSessionStats>;
 

@@ -131,6 +131,11 @@ api.post("/threads/:id/host-ui", async (c) => {
 
 // ── 统计 / 压缩 / 导出 ─────────────────────────────────────────────────
 
+api.post("/threads/:id/rewind", async (c) => {
+  await piClient.rewindToUserMessage(c.req.param("id"), await c.req.json());
+  return noContent();
+});
+
 api.get("/threads/:id/stats", async (c) => {
   return c.json(await piClient.getSessionStats(c.req.param("id")));
 });

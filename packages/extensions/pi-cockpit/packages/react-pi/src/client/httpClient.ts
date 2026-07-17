@@ -24,6 +24,7 @@
  *   POST   /threads/:id/unarchive   → 204
  *   DELETE /threads/:id             → 204
  *   POST   /threads/:id/host-ui     → 204                   (body: { response })
+ *   POST   /threads/:id/rewind      → 204                   (body: { userIndexFromEnd, message? })
  *   GET    /threads/:id/stats       → PiSessionStats
  *   POST   /threads/:id/compact     → 204                   (body: { customInstructions? })
  *   GET    /threads/:id/export/html → text/html (自包含文档)
@@ -199,6 +200,10 @@ export const createPiHttpClient = (
       await assertOk(
         await send(`${threadUrl(threadId)}/host-ui`, "POST", { response }),
       );
+    },
+
+    rewindToUserMessage: async (threadId, input) => {
+      await assertOk(await send(`${threadUrl(threadId)}/rewind`, "POST", input));
     },
 
     getSessionStats: async (threadId) =>

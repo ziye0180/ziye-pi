@@ -23,6 +23,8 @@ import {
   CheckIcon,
   CopyIcon,
   DownloadIcon,
+  PencilIcon,
+  RefreshCwIcon,
   ListEndIcon,
   MicIcon,
   SquareIcon,
@@ -123,15 +125,69 @@ const ThreadMessage: FC = () => {
   return <AssistantMessage />;
 };
 
+/** 编辑态 composer:user 气泡原位变身输入框(pi 无原地编辑,
+ * 发送 = rewind 到该消息前 + 发新文本,旧分支保留在会话树里)。 */
+const EditComposer: FC = () => (
+  <ComposerPrimitive.Root className="w-full max-w-[85%] rounded-(--radius-bubble) border border-border-strong bg-surface-2 p-2.5">
+    <ComposerPrimitive.Input
+      autoFocus
+      cancelOnEscape
+      className="max-h-40 w-full resize-none bg-transparent text-[15px] leading-relaxed text-text outline-none"
+    />
+    <div className="mt-2 flex justify-end gap-2">
+      <ComposerPrimitive.Cancel asChild>
+        <button
+          type="button"
+          className="rounded-md px-2.5 py-1 text-[13px] text-text-2 transition-colors duration-200 hover:text-text"
+        >
+          取消
+        </button>
+      </ComposerPrimitive.Cancel>
+      <ComposerPrimitive.Send asChild>
+        <button
+          type="button"
+          className="rounded-md bg-white/90 px-2.5 py-1 text-[13px] font-medium text-black transition-colors duration-200 hover:bg-white disabled:opacity-40"
+        >
+          发送
+        </button>
+      </ComposerPrimitive.Send>
+    </div>
+  </ComposerPrimitive.Root>
+);
+
+const UserActionBar: FC = () => (
+  <ActionBarPrimitive.Root
+    hideWhenRunning
+    autohide="always"
+    className="flex items-center gap-1 text-text-3"
+  >
+    <ActionBarPrimitive.Edit asChild>
+      <button
+        type="button"
+        aria-label="编辑"
+        className="rounded-md p-1 transition-colors duration-200 hover:text-text"
+      >
+        <PencilIcon className="size-3.5" />
+      </button>
+    </ActionBarPrimitive.Edit>
+  </ActionBarPrimitive.Root>
+);
+
 const UserMessage: FC = () => (
   <MessagePrimitive.Root
     data-role="user"
     className="animate-rise-in flex flex-col items-end gap-1.5"
   >
     <UserMessageAttachments />
-    <div className="max-w-[85%] rounded-(--radius-bubble) bg-surface-2 px-4 py-2.5 wrap-break-word empty:hidden">
-      <MessagePrimitive.Parts />
-    </div>
+    <AuiIf condition={(s) => s.composer.isEditing}>
+      <EditComposer />
+    </AuiIf>
+    <AuiIf condition={(s) => !s.composer.isEditing}>
+      <div className="max-w-[85%] rounded-(--radius-bubble) bg-surface-2 px-4 py-2.5 wrap-break-word empty:hidden">
+        <MessagePrimitive.Parts />
+      </div>
+      <UserActionBar />
+    </AuiIf>
   </MessagePrimitive.Root>
 );
 
@@ -214,6 +270,15 @@ const AssistantActionBar: FC = () => (
         </AuiIf>
       </button>
     </ActionBarPrimitive.Copy>
+    <ActionBarPrimitive.Reload asChild>
+      <button
+        type="button"
+        aria-label="重新生成"
+        className="rounded-md p-1 transition-colors duration-200 hover:text-text"
+      >
+        <RefreshCwIcon className="size-3.5" />
+      </button>
+    </ActionBarPrimitive.Reload>
     <ActionBarPrimitive.ExportMarkdown asChild>
       <button
         type="button"

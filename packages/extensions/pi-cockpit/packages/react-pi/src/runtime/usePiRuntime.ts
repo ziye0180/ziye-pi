@@ -88,6 +88,7 @@ export const NOOP_CONTROLLER: PiThreadControllerLike = {
   sendMessage: async () => {},
   cancel: async () => {},
   clearQueue: async () => ({ steering: [], followUp: [] }),
+  rewindToUserMessage: async () => {},
   setModel: async () => {},
   setThinkingLevel: async () => {},
   respondToToolApproval: async () => {},
@@ -98,6 +99,36 @@ export const NOOP_CONTROLLER: PiThreadControllerLike = {
 
 const NOOP_ON_NEW = () =>
   Promise.reject(new Error("Pi thread is still initializing"));
+
+/** Tail-relative user index for the nearest user message at or before
+ * `messageId` in the projected transcript. Tail-relative counting matches the
+ * supervisor's alignment against the session branch: compaction truncates the
+ * transcript head, so reverse indices stay stable while forward ones drift.
+ * Throws on unknown ids or when no user message precedes the point — a
+ * mismatch here means the projection and the session branch disagree, which
+ * must surface rather than silently rewind to the wrong message. */
+const reverseUserIndexAt = (
+  messages: readonly { id?: string; role: string }[],
+  messageId: string,
+): number => {
+  const pos = messages.findIndex((m) => m.id === messageId);
+  if (pos < 0) throw new Error(`Unknown projected message id: ${messageId}`);
+  let userPos = -1;
+  for (let i = pos; i >= 0; i -= 1) {
+    if (messages[i]!.role === "user") {
+      userPos = i;
+      break;
+    }
+  }
+  if (userPos < 0) {
+    throw new Error("No user message at or before the rewind point");
+  }
+  let after = 0;
+  for (let i = userPos + 1; i < messages.length; i += 1) {
+    if (messages[i]!.role === "user") after += 1;
+  }
+  return after;
+};
 
 const buildExtras = (
   controller: PiThreadControllerLike,
@@ -294,6 +325,46 @@ const usePiThreadStore = (
       onCancel: async () => {
         try {
           await controller.cancel();
+        } catch (error) {
+          onError?.(error);
+          throw error;
+        }
+      },
+      // Regenerate: assistant-ui hands us the reloaded assistant message's
+      // parent id; scan back to the nearest user message and rewind there.
+      onReload: async (parentId) => {
+        try {
+          if (!parentId) {
+            throw new Error("Cannot reload before the first user message");
+          }
+          const userIndexFromEnd = reverseUserIndexAt(
+            controller.getProjectedMessages(),
+            parentId,
+          );
+          await controller.rewindToUserMessage({ userIndexFromEnd });
+        } catch (error) {
+          onError?.(error);
+          throw error;
+        }
+      },
+      // Edit-and-retry: sourceId is the edited user message's own id. Pi has
+      // no in-place edit (append-only sessions) — rewind + send new text.
+      onEdit: async (message) => {
+        try {
+          if (message.role !== "user") {
+            throw new Error("Pi only supports editing user messages");
+          }
+          if (!message.sourceId) {
+            throw new Error("Edit is missing the source message id");
+          }
+          const userIndexFromEnd = reverseUserIndexAt(
+            controller.getProjectedMessages(),
+            message.sourceId,
+          );
+          await controller.rewindToUserMessage({
+            userIndexFromEnd,
+            message: buildPiSendInput(message, undefined),
+          });
         } catch (error) {
           onError?.(error);
           throw error;
